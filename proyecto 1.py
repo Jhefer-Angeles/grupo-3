@@ -1,600 +1,550 @@
-from datetime import datetime
-import os
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using ProductosBreeze1.Models;
+
+namespace ProductosBreeze1.Controllers
+{
+    public class HomeController : Controller
+    {
+        private readonly ILogger<HomeController> _logger;
+
+        public HomeController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}
+namespace ProductosBreeze1.Controllers
+{
+    [Authorize(Roles = "Admin,Empleado")]
+    public class InventarioController : Controller
+    {
+        private readonly AppDbContext _context;
+
+        public InventarioController(AppDbContext context)
+        {
+            _context = context;
+        }
 
 
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
+        // 1. MENÚ PRINCIPAL
+        public async Task<IActionResult> Menu()
+        {
+            ViewBag.TotalProductos = await _context.Productos.CountAsync();
+            ViewBag.BajoStock = await _context.Productos.CountAsync(p => p.Stock < 5);
+            ViewBag.VentasHoy = await _context.Ventas.Where(v => v.FechaHora.Date == DateTime.Today).CountAsync();
+            return View();
+        }
 
-RUTA_ARCHIVO = "expedientes.txt"
-SEPARADOR = "|"
+        // 2. REGISTRAR PRODUCTO (Solo Admin)
+        [Authorize(Roles = "Admin")]
+        public IActionResult RegistrarProducto() => View();
 
-ESTADOS_VALIDOS = (
-    "PENDIENTE",
-    "EN PROCESO",
-    "ATENDIDO"
-)
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegistrarProducto(Producto producto)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(producto);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(MostrarProductos));
+            }
+            return View(producto);
+        }
 
+        // 3. INGRESAR STOCK
+        public async Task<IActionResult> IngresarStock()
+        {
+            ViewBag.Productos = await _context.Productos.ToListAsync();
+            return View();
+        }
 
-# ============================================================
-# VALIDACIONES
-# ============================================================
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> IngresarStock(int productoId, int cantidad)
+        {
+            var producto = await _context.Productos.FindAsync(productoId);
+            if (producto != null && cantidad > 0)
+            {
+                producto.Stock += cantidad;
 
-def validar_dni(dni):
-    """
-    Valida que el DNI tenga exactamente 8 dígitos numéricos.
-    """
-    dni = dni.strip()
+                var historial = new HistorialIngreso
+                {
+                    Empleado = User.Identity.Name ?? "Empleado",
+                    ProductoId = productoId,
+                    Cantidad = cantidad,
+                    FechaHora = DateTime.Now
+                };
 
-    return dni.isdigit() and len(dni) == 8
+                _context.Add(historial);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(MostrarProductos));
+            }
+            return RedirectToAction(nameof(IngresarStock));
+        }
 
+        // 4. SALIDA DE STOCK / VENTA
+        public async Task<IActionResult> SalidaStock()
+        {
+            ViewBag.Productos = await _context.Productos.Where(p => p.Stock > 0).ToListAsync();
+            return View();
+        }
 
-def validar_nombre(nombre):
-    """
-    Valida que el nombre no esté vacío y contenga
-    solamente letras, espacios, tildes, ñ y ü.
-    """
-    nombre = nombre.strip()
-
-    if not nombre:
-        return False
-
-    letras_validas = "abcdefghijklmnopqrstuvwxyzáéíóúñü"
-
-    for caracter in nombre.lower():
-        if caracter != " " and caracter not in letras_validas:
-            return False
-
-    return True
-
-
-def validar_asunto(asunto):
-    """
-    Valida que el asunto tenga entre 5 y 200 caracteres.
-    """
-    asunto = asunto.strip()
-
-    return 5 <= len(asunto) <= 200
-
-
-def normalizar_nombre(nombre):
-    """
-    Convierte el nombre a formato título.
-    Ejemplo: juan perez -> Juan Perez
-    """
-    palabras = nombre.strip().split()
-
-    return " ".join(
-        palabra.capitalize()
-        for palabra in palabras
-    )
-
-
-def normalizar_texto(texto):
-    """
-    Elimina espacios innecesarios al inicio y al final.
-    """
-    return texto.strip()
-
-
-# ============================================================
-# PERSISTENCIA DE DATOS
-# ============================================================
-
-def cargar_expedientes(ruta=RUTA_ARCHIVO):
-    """
-    Lee el archivo de expedientes y devuelve una lista
-    de diccionarios.
-    """
-    expedientes = []
-
-    if not os.path.exists(ruta):
-        return expedientes
-
-    with open(ruta, "r", encoding="utf-8") as archivo:
-
-        for linea in archivo:
-            linea = linea.strip()
-
-            if not linea:
-                continue
-
-            campos = linea.split(SEPARADOR)
-
-            # Una línea válida debe tener 6 campos
-            if len(campos) != 6:
-                continue
-
-            expediente = {
-                "codigo": campos[0],
-                "dni": campos[1],
-                "nombre": campos[2],
-                "asunto": campos[3],
-                "fecha": campos[4],
-                "estado": campos[5]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RegistrarVenta(string cliente, string metodoPago, int[] productoIds, int[] cantidades)
+        {
+            if (string.IsNullOrEmpty(cliente) || productoIds == null || productoIds.Length == 0)
+            {
+                return RedirectToAction(nameof(SalidaStock));
             }
 
-            expedientes.append(expediente)
+            var venta = new Venta
+            {
+                Cliente = cliente,
+                MetodoPago = metodoPago,
+                Empleado = User.Identity.Name ?? "Empleado",
+                FechaHora = DateTime.Now,
+                Total = 0
+            };
 
-    return expedientes
+            decimal totalVenta = 0;
 
+            for (int i = 0; i < productoIds.Length; i++)
+            {
+                int pId = productoIds[i];
+                int cant = cantidades[i];
 
-def guardar_expedientes(expedientes, ruta=RUTA_ARCHIVO):
-    """
-    Guarda todos los expedientes en el archivo de texto.
-    """
-    with open(ruta, "w", encoding="utf-8") as archivo:
+                var prod = await _context.Productos.FindAsync(pId);
+                if (prod != null && prod.Stock >= cant && cant > 0)
+                {
+                    prod.Stock -= cant;
+                    var detalle = new DetalleVenta
+                    {
+                        ProductoId = pId,
+                        Cantidad = cant,
+                        PrecioUnitario = prod.Precio
+                    };
+                    venta.Detalles.Add(detalle);
+                    totalVenta += prod.Precio * cant;
+                }
+            }
 
-        for exp in expedientes:
+            if (venta.Detalles.Count > 0)
+            {
+                venta.Total = totalVenta;
+                _context.Add(venta);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(Comprobante), new { id = venta.Id });
+            }
 
-            linea = SEPARADOR.join([
-                exp["codigo"],
-                exp["dni"],
-                exp["nombre"],
-                exp["asunto"],
-                exp["fecha"],
-                exp["estado"]
-            ])
+            return RedirectToAction(nameof(SalidaStock));
+        }
 
-            archivo.write(linea + "\n")
+        // COMPROBANTE DE PAGO
+        public async Task<IActionResult> Comprobante(int id)
+        {
+            var venta = await _context.Ventas
+                .Include(v => v.Detalles)
+                .ThenInclude(d => d.Producto)
+                .FirstOrDefaultAsync(v => v.Id == id);
 
+            if (venta == null) return NotFound();
+            return View(venta);
+        }
 
-# ============================================================
-# BÚSQUEDA
-# ============================================================
+        // 5 & 6. MOSTRAR TODOS LOS PRODUCTOS Y BUSCAR
+        public async Task<IActionResult> MostrarProductos(string buscar)
+        {
+            var productos = from p in _context.Productos select p;
 
-def buscar_por_codigo(expedientes, codigo):
-    """
-    Busca un expediente por código mediante búsqueda lineal.
-    """
-    codigo = codigo.strip().upper()
+            if (!string.IsNullOrEmpty(buscar))
+            {
+                productos = productos.Where(p => p.Nombre.ToLower().Contains(buscar.ToLower()));
+            }
 
-    for exp in expedientes:
+            ViewBag.Busqueda = buscar;
+            return View(await productos.ToListAsync());
+        }
 
-        if exp["codigo"].upper() == codigo:
-            return exp
+        // EDITAR (Solo Admin)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Editar(int id)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto == null) return NotFound();
+            return View(producto);
+        }
 
-    return None
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Editar(Producto producto)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Update(producto);
+                await _context.SaveChangesAsync();
+                return RedirectToAction(nameof(MostrarProductos));
+            }
+            return View(producto);
+        }
 
+        // ELIMINAR (Solo Admin)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            var producto = await _context.Productos.FindAsync(id);
+            if (producto != null)
+            {
+                _context.Productos.Remove(producto);
+                await _context.SaveChangesAsync();
+            }
+            return RedirectToAction(nameof(MostrarProductos));
+        }
 
-# ============================================================
-# ORDENAMIENTO
-# ============================================================
+        // 7. ALERTAS DE STOCK
+        public async Task<IActionResult> AlertasStock()
+        {
+            var productos = await _context.Productos.ToListAsync();
+            return View(productos);
+        }
 
-def ordenar_por_campo(expedientes, campo="codigo", ascendente=True):
-    """
-    Ordena una copia de la lista usando Bubble Sort.
+        // 8. HISTORIAL DE INGRESOS
+        public async Task<IActionResult> HistorialIngresos()
+        {
+            var historial = await _context.HistorialIngresos.Include(h => h.Producto).OrderByDescending(h => h.FechaHora).ToListAsync();
+            return View(historial);
+        }
 
-    Campos permitidos:
-    - codigo
-    - nombre
-    - fecha
-
-    No modifica la lista original.
-    """
-
-    campos_validos = (
-        "codigo",
-        "nombre",
-        "fecha"
-    )
-
-    if campo not in campos_validos:
-        raise ValueError("Campo de ordenamiento inválido.")
-
-    lista = expedientes.copy()
-    n = len(lista)
-
-    for i in range(n - 1):
-
-        intercambio = False
-
-        for j in range(n - 1 - i):
-
-            valor_actual = lista[j][campo]
-            valor_siguiente = lista[j + 1][campo]
-
-            if ascendente:
-                debe_intercambiar = (
-                    valor_actual > valor_siguiente
-                )
-            else:
-                debe_intercambiar = (
-                    valor_actual < valor_siguiente
-                )
-
-            if debe_intercambiar:
-
-                lista[j], lista[j + 1] = (
-                    lista[j + 1],
-                    lista[j]
-                )
-
-                intercambio = True
-
-        # Si no hubo intercambios,
-        # la lista ya está ordenada.
-        if not intercambio:
-            break
-
-    return lista
-
-
-# ============================================================
-# GENERAR CÓDIGO
-# ============================================================
-
-def generar_codigo(expedientes):
-    """
-    Genera un código único:
-    EXP-0001, EXP-0002, EXP-0003, etc.
-    """
-
-    numero = len(expedientes) + 1
-
-    codigos_existentes = {
-        exp["codigo"]
-        for exp in expedientes
+        // 9. HISTORIAL DE VENTAS
+        public async Task<IActionResult> HistorialVentas()
+        {
+            var ventas = await _context.Ventas.OrderByDescending(v => v.FechaHora).ToListAsync();
+            return View(ventas);
+        }
     }
+}
+namespace ProductosBreeze1.Controllers
+{
+    public class LoginController : Controller
+    {
+        private readonly AppDbContext _dbconext;
 
-    codigo = f"EXP-{numero:04d}"
+        public LoginController(AppDbContext dbcontext)
+        {
+            _dbconext = dbcontext;
+        }
 
-    while codigo in codigos_existentes:
+        [HttpGet]
+        public IActionResult Registro()
+        {
+            ViewBag.Roles = _dbconext.Roles.ToList();
+            return View();
+        }
 
-        numero += 1
-        codigo = f"EXP-{numero:04d}"
+        [HttpPost]
+        public async Task<IActionResult> Registro(UserVM model)
+        {
+            if (model.Pass != model.RepPass)
+            {
+                ViewData["Mensaje"] = "Las contraseñas no coinciden";
+                ViewBag.Roles = _dbconext.Roles.ToList();
+                return View();
+            }
 
-    return codigo
+            Usuario usuario = new Usuario()
+            {
+                NameUser = model.Name,
+                Email = model.Email,
+                Password = model.Pass,
+                RolId = model.IdRol
+            };
 
+            await _dbconext.Usuarios.AddAsync(usuario);
+            await _dbconext.SaveChangesAsync();
 
-# ============================================================
-# MOSTRAR EXPEDIENTE
-# ============================================================
+            if (usuario.idUsuario != 0) return RedirectToAction("Login", "Login");
 
-def mostrar_expediente(exp):
-    """
-    Muestra los datos de un expediente.
-    """
+            ViewData["Mensaje"] = "El usuario no pudo crearse";
+            ViewBag.Roles = _dbconext.Roles.ToList();
+            return View();
+        }
 
-    print("-" * 50)
-    print(f"Código : {exp['codigo']}")
-    print(f"DNI    : {exp['dni']}")
-    print(f"Nombre : {exp['nombre']}")
-    print(f"Asunto : {exp['asunto']}")
-    print(f"Fecha  : {exp['fecha']}")
-    print(f"Estado : {exp['estado']}")
-    print("-" * 50)
+        [HttpGet]
+        public IActionResult Login()
+        {
+            return View();
+        }
 
+        [HttpPost]
+        public async Task<IActionResult> Login(LoginVM model)
+        {
+            // Buscamos el usuario incluyendo los datos de su tabla de Roles vinculada
+            Usuario? usuario_encontrado = await _dbconext.Usuarios
+                .Include(u => u.Roles)
+                .Where(u => u.Email == model.Email && u.Password == model.Password)
+                .FirstOrDefaultAsync();
 
-# ============================================================
-# REGISTRAR EXPEDIENTE
-# ============================================================
+            if (usuario_encontrado == null)
+            {
+                ViewData["Mensaje"] = "No se encontraron usuarios";
+                return View();
+            }
 
-def registrar_expediente(expedientes):
-    """
-    Solicita los datos del ciudadano,
-    los valida y registra el expediente.
-    """
+            // ==========================================
+            // 🔐 CONSTRUCCIÓN DE LA COOKIE DE AUTENTICACIÓN
+            // ==========================================
+            var claims = new List<Claim>
+            {
+                // Guardamos el nombre de usuario y su Rol para que el _Layout lo lea automáticamente
+                new Claim(ClaimTypes.Name, usuario_encontrado.NameUser),
+                new Claim(ClaimTypes.Role, usuario_encontrado.Roles.Nombre)
+            };
 
-    print("\n--- REGISTRO DE NUEVO EXPEDIENTE ---")
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
-    # ----------------------------
-    # DNI
-    # ----------------------------
+            // Guardamos físicamente la cookie en el navegador del usuario
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
 
-    dni = input(
-        "DNI del ciudadano (8 dígitos): "
-    ).strip()
+            // ==========================================
+            // 🔄 REDIRECCIÓN EN BASE AL ROL DEL USUARIO
+            // ==========================================
+            switch (usuario_encontrado.Roles.Nombre)
+            {
+                case "Admin":
+                    // El Administrador ingresa directo al Menú General de Inventario
+                    return RedirectToAction("Menu", "Inventario");
 
-    while not validar_dni(dni):
+                case "User":
+                    // El rol "User" (Empleado) también entra al inventario, pero las restricciones se validan en las acciones
+                    return RedirectToAction("Menu", "Inventario");
 
-        print(
-            "DNI inválido. "
-            "Debe tener exactamente 8 dígitos."
-        )
+                case "Person":
+                    return RedirectToAction("Registro", "Login");
 
-        dni = input(
-            "DNI del ciudadano (8 dígitos): "
-        ).strip()
+                default:
+                    return RedirectToAction("Menu", "Inventario");
+            }
+        }
 
-    # ----------------------------
-    # NOMBRE
-    # ----------------------------
-
-    nombre = input(
-        "Nombre completo del ciudadano: "
-    ).strip()
-
-    while not validar_nombre(nombre):
-
-        print(
-            "Nombre inválido. "
-            "Use solamente letras y espacios."
-        )
-
-        nombre = input(
-            "Nombre completo del ciudadano: "
-        ).strip()
-
-    nombre = normalizar_nombre(nombre)
-
-    # ----------------------------
-    # ASUNTO
-    # ----------------------------
-
-    asunto = input(
-        "Asunto del trámite: "
-    ).strip()
-
-    while not validar_asunto(asunto):
-
-        print(
-            "Asunto inválido. "
-            "Debe tener entre 5 y 200 caracteres."
-        )
-
-        asunto = input(
-            "Asunto del trámite: "
-        ).strip()
-
-    asunto = normalizar_texto(asunto)
-
-    # ----------------------------
-    # CREAR EXPEDIENTE
-    # ----------------------------
-
-    codigo = generar_codigo(expedientes)
-
-    fecha = datetime.now().strftime(
-        "%Y-%m-%d %H:%M"
-    )
-
-    estado = "PENDIENTE"
-
-    expediente = {
-        "codigo": codigo,
-        "dni": dni,
-        "nombre": nombre,
-        "asunto": asunto,
-        "fecha": fecha,
-        "estado": estado
+        // Método extra muy útil para cuando deseen cerrar sesión de forma segura
+        [HttpGet]
+        public async Task<IActionResult> Salir()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login", "Login");
+        }
     }
+}
+namespace ProductosBreeze1.Data
+{
+    public class AppDbContext : DbContext
+    {
+        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+        {
 
-    # Agregar a la lista
-    expedientes.append(expediente)
+        }
+        public DbSet<Usuario> Usuarios { get; set; }
+        public DbSet<Roles> Roles { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Usuario>()
+                .HasOne(u => u.Roles)
+                .WithMany(r => r.Usuarios)
+                .HasForeignKey(u => u.RolId);
 
-    # Guardar en archivo
-    guardar_expedientes(expedientes)
+            modelBuilder.Entity<Roles>().HasData(
+                new Roles { IdRol = 1, Nombre = "Admin" },
+                new Roles { IdRol = 2, Nombre = "User" },
+                new Roles { IdRol = 3, Nombre = "Person" }
+            );
 
-    print("\nExpediente registrado con éxito.")
-    print(f"Código asignado: {codigo}")
+            modelBuilder.Entity<Usuario>().HasData(
+                new Usuario { idUsuario = 1, NameUser = "Juan Perez", Email = "juanito@gmail.com", Password = "123456", RolId = 2 }
+            );
+            base.OnModelCreating(modelBuilder);
 
+        }
 
-# ============================================================
-# BUSCAR EXPEDIENTE
-# ============================================================
-
-def buscar_expediente(expedientes):
-    """
-    Solicita un código y muestra el expediente encontrado.
-    """
-
-    print("\n--- BUSCAR EXPEDIENTE ---")
-
-    codigo = input(
-        "Ingrese el código del expediente: "
-    )
-
-    resultado = buscar_por_codigo(
-        expedientes,
-        codigo
-    )
-
-    if resultado is not None:
-
-        mostrar_expediente(resultado)
-
-    else:
-
-        print(
-            "No se encontró ningún expediente "
-            "con ese código."
-        )
-
-
-# ============================================================
-# LISTAR EXPEDIENTES
-# ============================================================
-
-def listar_expedientes(expedientes):
-    """
-    Muestra todos los expedientes ordenados.
-    """
-
-    print("\n--- LISTAR EXPEDIENTES ---")
-
-    if not expedientes:
-
-        print(
-            "No hay expedientes registrados todavía."
-        )
-
-        return
-
-    print("\n1. Ordenar por código")
-    print("2. Ordenar por nombre")
-    print("3. Ordenar por fecha")
-
-    opcion = input(
-        "Elija un criterio de orden: "
-    ).strip()
-
-    campo_map = {
-        "1": "codigo",
-        "2": "nombre",
-        "3": "fecha"
+        public DbSet<Producto> Productos { get; set; }
+            public DbSet<HistorialIngreso> HistorialIngresos { get; set; }
+            public DbSet<Venta> Ventas { get; set; }
+            public DbSet<DetalleVenta> DetallesVentas { get; set; }
     }
+}
+namespace ProductosBreeze1.Models
+{
+    public class DetalleVenta
+    {
+        [Key]
+        public int Id { get; set; }
 
-    campo = campo_map.get(opcion)
+        [Required]
+        public int VentaId { get; set; }
+        public virtual Venta Venta { get; set; }
 
-    if campo is None:
+        [Required]
+        public int ProductoId { get; set; }
+        public virtual Producto Producto { get; set; }
 
-        print(
-            "Opción de ordenamiento inválida."
-        )
+        [Required]
+        public int Cantidad { get; set; }
 
-        return
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal PrecioUnitario { get; set; }
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class ErrorViewModel
+    {
+        public string? RequestId { get; set; }
 
-    ordenados = ordenar_por_campo(
-        expedientes,
-        campo
-    )
+        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class HistorialIngreso
+    {
+        [Key]
+        public int Id { get; set; }
 
-    print(
-        f"\n--- EXPEDIENTES ORDENADOS POR {campo.upper()} ---"
-    )
+        [Required]
+        public string Empleado { get; set; }
 
-    for exp in ordenados:
+        [Required]
+        public int ProductoId { get; set; }
+        public virtual Producto Producto { get; set; }
 
-        mostrar_expediente(exp)
+        [Required]
+        [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor a 0.")]
+        public int Cantidad { get; set; }
 
+        [Required]
+        public DateTime FechaHora { get; set; }
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class Producto
+    {
+        [Key]
+        public int Id { get; set; }
 
-# ============================================================
-# ACTUALIZAR ESTADO
-# ============================================================
+        [Required(ErrorMessage = "El nombre del producto es obligatorio.")]
+        [StringLength(100)]
+        public string Nombre { get; set; }
 
-def actualizar_estado(expedientes):
-    """
-    Permite cambiar el estado de un expediente.
-    """
+        [Required(ErrorMessage = "La marca es obligatoria.")]
+        [StringLength(50)]
+        public string Marca { get; set; }
 
-    print("\n--- ACTUALIZAR ESTADO ---")
+        [Required(ErrorMessage = "La categoría es obligatoria.")]
+        [StringLength(50)]
+        public string Categoria { get; set; }
+        public string UnidadMedida { get; set; } = string.Empty;
 
-    codigo = input(
-        "Código del expediente: "
-    )
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal CantidadMedida { get; set; }
 
-    expediente = buscar_por_codigo(
-        expedientes,
-        codigo
-    )
+        [Required(ErrorMessage = "El precio es obligatorio.")]
+        [Column(TypeName = "decimal(18,2)")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0.")]
+        public decimal Precio { get; set; }
 
-    if expediente is None:
+        [Required(ErrorMessage = "El stock inicial es obligatorio.")]
+        [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo.")]
+        public int Stock { get; set; }
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class Roles
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int IdRol { get; set; }
+        [Required, StringLength(50)]
+        public string Nombre { get; set; }
+        public ICollection<Usuario> Usuarios { get; set; }
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class Usuario
+    {
+        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int idUsuario { get; set; }
+        [Required, StringLength(50)]
+        public string NameUser { get; set; }
+        [Required, StringLength(50)]
+        public string Email { get; set; }
+        [Required, StringLength(50)]
+        public string Password { get; set; }
+        public int RolId { get; set; }
+        public Roles Roles { get; set; }
+    }
+}
+namespace ProductosBreeze1.Models
+{
+    public class Venta
+    {
+        [Key]
+        public int Id { get; set; }
 
-        print("Expediente no encontrado.")
+        [Required]
+        public string Empleado { get; set; }
 
-        return
+        [Required(ErrorMessage = "El nombre del cliente es obligatorio.")]
+        public string Cliente { get; set; }
 
-    print("\nEstados disponibles:")
+        [Required]
+        public DateTime FechaHora { get; set; }
 
-    for estado in ESTADOS_VALIDOS:
+        [Required]
+        public string MetodoPago { get; set; } // Efectivo, Yape, Transferencia
 
-        print(f"- {estado}")
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Total { get; set; }
 
-    nuevo_estado = input(
-        "Nuevo estado: "
-    ).strip().upper()
-
-    if nuevo_estado not in ESTADOS_VALIDOS:
-
-        print("Estado inválido.")
-
-        return
-
-    expediente["estado"] = nuevo_estado
-
-    guardar_expedientes(expedientes)
-
-    print(
-        "Estado actualizado correctamente."
-    )
-
-
-# ============================================================
-# MENÚ PRINCIPAL
-# ============================================================
-
-def mostrar_menu():
-    """
-    Muestra el menú principal.
-    """
-
-    print("\n")
-    print("=" * 45)
-    print("       MESA DE PARTES DIGITAL")
-    print("=" * 45)
-    print("1. Registrar expediente")
-    print("2. Buscar expediente por código")
-    print("3. Listar y ordenar expedientes")
-    print("4. Actualizar estado de expediente")
-    print("5. Salir")
-    print("=" * 45)
-
-
-# ============================================================
-# PROGRAMA PRINCIPAL
-# ============================================================
-
-def main():
-    """
-    Función principal del sistema.
-    """
-
-    # Cargar los expedientes existentes
-    expedientes = cargar_expedientes()
-
-    while True:
-
-        mostrar_menu()
-
-        opcion = input(
-            "Seleccione una opción: "
-        ).strip()
-
-        if opcion == "1":
-
-            registrar_expediente(
-                expedientes
-            )
-
-        elif opcion == "2":
-
-            buscar_expediente(
-                expedientes
-            )
-
-        elif opcion == "3":
-
-            listar_expedientes(
-                expedientes
-            )
-
-        elif opcion == "4":
-
-            actualizar_estado(
-                expedientes
-            )
-
-        elif opcion == "5":
-
-            print(
-                "\nSaliendo del sistema. "
-                "¡Hasta pronto!"
-            )
-
-            break
-
-        else:
-
-            print(
-                "\nOpción no válida. "
-                "Intente nuevamente."
-            )
-
-
-# ============================================================
-# INICIO DEL PROGRAMA
-# ============================================================
-
-if __name__ == "__main__":
-    main()
+        public virtual List<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
+    }
+}
+namespace ProductosBreeze1.ViewModels
+{
+    public class LoginVM
+    {
+        public string Email { get; set; }
+        public string Password { get; set; }
+    }
+}
+namespace ProductosBreeze1.ViewModels
+{
+    public class UserVM
+    {
+        public string Name { get; set; }
+        public string Email { get; set; }
+        public string Pass { get; set; }
+        public string RepPass { get; set; }
+        public int IdRol { get; set; }
+    }
+}
