@@ -15,7 +15,7 @@ namespace ProductosBreeze1.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            return View();0
         }
 
         public IActionResult Privacy()
