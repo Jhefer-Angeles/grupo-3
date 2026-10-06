@@ -91,22 +91,22 @@ def capturar_solicitudes_desde_teclado(cantidad):
 def ejecutar_pruebas():
     print("\n===== EJECUTANDO PRUEBAS =====")
  
-    r1 = registrar_solicitud("A00123", "Ana Torres", "matricula", "Duda sobre fechas de matrícula")
+    r1 = registrar_solicitud("N00550511", "JHEFER POLO ANGELES", "matricula", "Duda sobre fechas de matrícula")
     print("Caso 1 (datos válidos):", "OK" if r1 else "FALLÓ")
  
-    r2 = registrar_solicitud("", "Luis Pérez", "pagos", "Consulta sobre pago pendiente")
+    r2 = registrar_solicitud("", "Astrid carolina Arribasplata Rojas", "pagos", "Consulta sobre pago pendiente")
     print("Caso 2 (código vacío):", "Rechazado correctamente" if r2 is None else "ERROR: debió rechazarse")
  
-    r3 = registrar_solicitud("B00456", "Marta Ruiz", "reclamo", "Quiero reclamar una nota")
+    r3 = registrar_solicitud("N00552400", "Angel Daniel Huaman Chilon", "reclamo", "Quiero reclamar una nota")
     print("Caso 3 (tipo incorrecto):", "Rechazado correctamente" if r3 is None else "ERROR: debió rechazarse")
  
-    r4 = registrar_solicitud("C00789", "Jorge Díaz", "plataforma", "No puede ingresar al aula virtual")
+    r4 = registrar_solicitud("N007519", "Leyner Irigoin", "plataforma", "No puede ingresar al aula virtual")
     if r4:
         print("Caso 4 (prioridad alta):", "OK" if r4["prioridad"] == "Alta" else "FALLÓ")
     else:
         print("Caso 4 (prioridad alta): FALLÓ (no se registró)")
  
-    r5 = registrar_solicitud("D00987", "Karen Vega", "constancia", "Solicita constancia de estudios")
+    r5 = registrar_solicitud("N00549643", "Ivan Edilberto Malca Malca", "constancia", "Solicita constancia de estudios")
     if r5:
         print("Caso 5 (prioridad baja):", "OK" if r5["prioridad"] == "Baja" else "FALLÓ")
     else:
