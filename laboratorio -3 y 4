@@ -9,3 +9,59 @@ def leer_entero(mensaje):
         except ValueError:
             print("Entrada no valido. Ingrese un numero entero")
 
+def leer_texto(mensaje):
+    "pedir un texto y repite hasta que no sea vacio"
+    while True:
+        texto = input(mensaje).strip()
+        if texto != "":
+            return texto
+        print (" El texto no puede estar vacion.")
+
+def burbuja(datos, clave=None):
+    "ordenar de menor a mayor comparando elementos adyacentes."
+    if clave is None:
+        clave = lambda x: x
+    lista = datos.copy()
+    comparaciones = 0
+    intercambios = 0
+    n= len(lista)
+    for i in range(n - 1):
+        for j in range(n - 1 - 1):
+            comparaciones += 1
+            if clave(lista[j]) > clave(lista[j + 1]):
+               lista[j], lista[j + 1] = lista[j +1], lista[j]
+               intercambios += 1
+            return lista, comparaciones, intercambios
+
+def seleccion(datos, clave=None):
+    "ordenar de menor a mayor comparando elementos adyacentes."
+    if clave is None:
+        clave = lambda x: x
+    lista = datos.copy()
+    comparaciones = 0
+    intercambios = 0
+    n= len(lista)
+    for i in range(n - 1):
+        min_index = i
+        for j in range(i + 1, n):
+            comparaciones += 1
+            if clave(lista[j]) < clave(lista[min_index]):
+                min_index = j
+        if min_index != i:
+            lista[i], lista[min_index] = lista[min_index], lista[i]
+            intercambios += 1
+    return lista, comparaciones, intercambios
+
+def etapa_1():
+    print("\n===ETAPA 1: LISTA UNIDIMENCIONAL ===")
+    numeros = [15, 8, 42, 23, 4, 16, 37, 9, 50, 12]
+
+    print("Elementos de lista:")
+    for i in range(len(numeros)):
+        print(f"Elemento {i}: {numeros[i]}")
+
+    nuevo = leer_entero("\nIngrese el nuevo valor parael tercer elemento:")
+    numeros[2] = nuevo
+    print("lista modificada:", numeros)
+    
+
