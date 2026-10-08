@@ -1,0 +1,11 @@
+"TEMA:3 manipulacion de listas y arreglos (recorrido, operaciones y ordenamiento)"
+"TEMA 4: cadenas de arreglos paralelos (manipulacion y busqueda)"
+
+def leer_entero(mensaje):
+    "escribir un numero y repetir hasta que sea correcto"
+    while True:
+        try:
+            return int(input(mensaje))
+        except ValueError:
+            print("Entrada no valido. Ingrese un numero entero")
+
