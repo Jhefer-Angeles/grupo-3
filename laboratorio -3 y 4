@@ -1,67 +1,218 @@
-"TEMA:3 manipulacion de listas y arreglos (recorrido, operaciones y ordenamiento)"
-"TEMA 4: cadenas de arreglos paralelos (manipulacion y busqueda)"
-
 def leer_entero(mensaje):
-    "escribir un numero y repetir hasta que sea correcto"
+    """Pide un entero y repite hasta que el usuario escriba uno válido."""
     while True:
         try:
             return int(input(mensaje))
         except ValueError:
-            print("Entrada no valido. Ingrese un numero entero")
+            print("  Valor no válido. Escribe un número entero.")
 
-def leer_texto(mensaje):
-    "pedir un texto y repite hasta que no sea vacio"
-    while True:
-        texto = input(mensaje).strip()
-        if texto != "":
-            return texto
-        print (" El texto no puede estar vacion.")
+def titulo(texto):
+    print("\n" + "=" * 60)
+    print(texto)
+    print("=" * 60)
 
-def burbuja(datos, clave=None):
-    "ordenar de menor a mayor comparando elementos adyacentes."
-    if clave is None:
-        clave = lambda x: x
-    lista = datos.copy()
-    comparaciones = 0
-    intercambios = 0
-    n= len(lista)
-    for i in range(n - 1):
-        for j in range(n - 1 - 1):
-            comparaciones += 1
-            if clave(lista[j]) > clave(lista[j + 1]):
-               lista[j], lista[j + 1] = lista[j +1], lista[j]
-               intercambios += 1
-            return lista, comparaciones, intercambios
+def etapa1_lista_unidimensional():
+    titulo("TEMA 3 - ETAPA 1: Lista unidimensional")
+    numeros = [15, 8, 42, 23, 4, 16, 37, 9, 30, 11]  
 
-def seleccion(datos, clave=None):
-    "ordenar de menor a mayor comparando elementos adyacentes."
-    if clave is None:
-        clave = lambda x: x
-    lista = datos.copy()
-    comparaciones = 0
-    intercambios = 0
-    n= len(lista)
-    for i in range(n - 1):
-        min_index = i
-        for j in range(i + 1, n):
-            comparaciones += 1
-            if clave(lista[j]) < clave(lista[min_index]):
-                min_index = j
-        if min_index != i:
-            lista[i], lista[min_index] = lista[min_index], lista[i]
-            intercambios += 1
-    return lista, comparaciones, intercambios
-
-def etapa_1():
-    print("\n===ETAPA 1: LISTA UNIDIMENCIONAL ===")
-    numeros = [15, 8, 42, 23, 4, 16, 37, 9, 50, 12]
-
-    print("Elementos de lista:")
+    print("Elementos de la lista:")
     for i in range(len(numeros)):
-        print(f"Elemento {i}: {numeros[i]}")
+        print(f"  Posición {i}: {numeros[i]}")
 
-    nuevo = leer_entero("\nIngrese el nuevo valor parael tercer elemento:")
+    nuevo = leer_entero("\nIngresa el nuevo valor para el tercer elemento: ")
     numeros[2] = nuevo
-    print("lista modificada:", numeros)
-    
+    print("Lista modificada:", numeros)
 
+    buscado = leer_entero("Ingresa un número a buscar: ")
+    if buscado in numeros:
+        print(f"  El {buscado} SÍ existe (posición {numeros.index(buscado)}).")
+    else:
+        print(f"  El {buscado} NO existe en la lista.")
+
+def etapa2_matriz():
+    titulo("TEMA 3 - ETAPA 2: Matriz 3x3")
+    matriz = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
+
+    for i in range(3):
+        for j in range(3):
+            matriz[i][j] = leer_entero(f"  Elemento [{i}][{j}]: ")
+
+    print("\nMatriz ingresada:")
+    for i in range(3):
+        for j in range(3):
+            print(f"{matriz[i][j]:5}", end="")
+        print()
+
+    suma = 0
+    for fila in matriz:
+        for valor in fila:
+            suma += valor
+    print(f"\nSuma total de los elementos: {suma}")
+
+def etapa3_menu_lista():
+    titulo("TEMA 3 - ETAPA 3: Operaciones sobre una lista dinámica")
+    lista = []
+    while True:
+        print("\n1. Insertar elemento al final")
+        print("2. Eliminar elemento por posición")
+        print("3. Buscar un valor y mostrar su posición")
+        print("4. Mostrar la lista actualizada")
+        print("5. Volver al menú principal")
+        op = input("Elige una opción: ").strip()
+
+        if op == "1":
+            lista.append(leer_entero("  Valor a insertar: "))
+            print("  Insertado.")
+        elif op == "2":
+            if not lista:
+                print("  La lista está vacía.")
+            else:
+                pos = leer_entero("  Posición a eliminar: ")
+                if 0 <= pos < len(lista):
+                    print(f"  Eliminado: {lista.pop(pos)}")
+                else:
+                    print("  Posición fuera de rango.")
+        elif op == "3":
+            valor = leer_entero("  Valor a buscar: ")
+            posiciones = [i for i, v in enumerate(lista) if v == valor]
+            if posiciones:
+                print(f"  Encontrado en la(s) posición(es): {posiciones}")
+            else:
+                print("  No se encontró el valor.")
+        elif op == "4":
+            print("  Lista actual:", lista)
+        elif op == "5":
+            break
+        else:
+            print("  Opción inválida.")
+
+def burbuja(datos):
+    """Ordena ascendente. Sirve para números y para cadenas."""
+    arr = datos.copy()
+    n = len(arr)
+    for i in range(n - 1):
+        for j in range(n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+    return arr
+
+def seleccion(datos):
+    "Ordena ascedente. Sirve para numeros y para cadenas."
+    arr = datos.copy()
+    n = len(arr)
+    for i in range(n - 1):
+        menor = i
+        for j in range(i + 1, n):
+            if arr[j] < arr[menor]:
+                menor = j
+        arr[i], arr[menor] = arr[menor], arr[i]
+    return arr
+
+def etapa4_ordenamiento():
+    titulo("TEMA 3 - ETAPA 4: Algoritmos de ordenamiento")
+    desordenada = [64, 25, 12, 22, 11, 90, 5, 47]
+    print("Lista ANTES de ordenar:", desordenada)
+
+    por_burbuja = burbuja(desordenada)
+    por_seleccion = seleccion(desordenada)
+
+    print("Después de BURBUJA:    ", por_burbuja)
+    print("Después de SELECCIÓN:  ", por_seleccion)
+    print("¿Ambos resultados son iguales?", por_burbuja == por_seleccion)
+
+def parte1_cadenas():
+    titulo("TEMA 4 - PARTE 1: Manipulación de cadenas")
+    texto = "Python es un lenguaje de programación fácil de aprender"
+    print("Texto original:", texto)
+
+    print("\nSubcadena texto[0:6]        ->", texto[0:6])
+    print("Subcadena texto[13:21]      ->", texto[13:21])
+
+    palabra = "lenguaje"
+    pos = texto.find(palabra)
+    print(f"find('{palabra}')          -> {pos}")
+    print(f"find('java') (no existe)   -> {texto.find('java')}  (-1 = no encontrado)")
+
+    nuevo = texto.replace("fácil", "divertido")
+    print("\nreplace('fácil','divertido') ->", nuevo)
+    print("El original sigue igual (inmutable):", texto)
+
+    partes = texto.split(" ")
+    print("\nsplit(' ') ->", partes)
+    print("Cantidad de palabras:", len(partes))
+
+def parte2_listas_paralelas():
+    titulo("TEMA 4 - PARTE 2: Listas paralelas (nombres y edades)")
+    nombres = ["Jhefer Efrain Polo Angeles", "Leyner Jhuchssu Irigoin Chavez", "Angel Daniel Huamán Chilón ", 
+               "Ivan Edilberto Malca Malca", "Astrid Carolina Arribasplata Rojas"]
+    edades = [19, 19, 18, 21, 17]
+    print("Registros:")
+    for i in range(len(nombres)):
+        print(f"  índice {i}: {nombres[i]} -> {edades[i]} años")
+
+    buscado = input("\nNombre a buscar: ").strip()
+    encontrado = False
+    for i in range(len(nombres)):
+        if nombres[i].lower() == buscado.lower():
+            print(f"  {nombres[i]} tiene {edades[i]} años.")
+            encontrado = True
+            break
+    if not encontrado:
+        print("  Persona no encontrada.")
+
+def parte3_estructura_combinada():
+    titulo("TEMA 4 - PARTE 3: Lista de diccionarios")
+    usuarios = [
+        {"nombre": "Jhefer Efrain Polo Angeles", "email": "N00550511@upn.pe", "ciudad": "Cajabamba"},
+        {"nombre": "Leyner Jhuchssu Irigoin Chavez", "email": "N00557519@upn.pe", "ciudad": "Chota"},
+        {"nombre": "Angel Daniel Huamán Chilón ", "email": "N00552400@upn.pe", "ciudad": "Cajamarca"},
+        {"nombre": "Ivan Edilberto Malca Malca", "email": "N00549643@upn.pe", "ciudad": "San Miguel"},
+        {"nombre": "Astrid Carolina Arribasplata Rojas", "email": "N00552988@upn.pe", "ciudad": "Cajamarca"},
+    ]
+
+    print("Usuarios registrados:")
+    for u in usuarios:
+        print(f"  {u['nombre']:8} | {u['email']:16} | {u['ciudad']}")
+
+    ciudad = input("\nCiudad a buscar: ").strip()
+    coincidencias = [u for u in usuarios if ciudad.lower() in u["ciudad"].lower()]
+    if coincidencias:
+        print(f"Coincidencias en '{ciudad}':")
+        for u in coincidencias:
+            print(f"  - {u['nombre']} ({u['email']})")
+    else:
+        print("  Sin coincidencias.")
+
+    nombres = [u["nombre"] for u in usuarios]
+    print("\nNombres sin ordenar:     ", nombres)
+    print("Ordenados (burbuja):     ", burbuja(nombres))
+    print("Ordenados (selección):   ", seleccion(nombres))
+
+def main():
+    opciones = {
+        "1": ("T3 Etapa 1 - Lista unidimensional", etapa1_lista_unidimensional),
+        "2": ("T3 Etapa 2 - Matriz 3x3", etapa2_matriz),
+        "3": ("T3 Etapa 3 - Menú de operaciones sobre lista", etapa3_menu_lista),
+        "4": ("T3 Etapa 4 - Ordenamiento burbuja y selección", etapa4_ordenamiento),
+        "5": ("T4 Parte 1 - Métodos de cadenas", parte1_cadenas),
+        "6": ("T4 Parte 2 - Listas paralelas", parte2_listas_paralelas),
+        "7": ("T4 Parte 3 - Estructura combinada y orden alfabético",
+              parte3_estructura_combinada),
+    }
+    while True:
+        titulo("LABORATORIO INTEGRADO (TEMA 3 y TEMA 4)")
+        for clave, (nombre, _) in opciones.items():
+            print(f"{clave}. {nombre}")
+        print("0. Salir")
+        op = input("Elige una opción: ").strip()
+        if op == "0":
+            print("Fin del programa.")
+            break
+        elif op in opciones:
+            opciones[op][1]()
+        else:
+            print("Opción inválida.")
+
+
+if __name__ == "__main__":
+    main()
