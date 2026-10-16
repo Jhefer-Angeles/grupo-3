@@ -1,1 +1,196 @@
-print("¡Hola, mundo desde mi rama de funcionalidad!")
+Algoritmo SistemaLotesCerveceria
+	Definir codigos, estilos, fechas, responsables, estados Como Cadena
+	Definir litros Como Entero
+	Definir n, opcion, i, pos, j, mayor, auxLitros Como Entero
+	Definir codigo, estilo, fecha, responsable, estado Como Cadena
+	Definir aux Como Cadena
+	Definir encontrado Como Lógico
+	Dimensionar codigos(100)
+	Dimensionar estilos(100)
+	Dimensionar fechas(100)
+	Dimensionar responsables(100)
+	Dimensionar estados(100)
+	Dimensionar litros(100)
+	n <- 0
+	Repetir
+		Escribir ''
+		Escribir '===== SISTEMA DE LOTES DE CERVECERIA ====='
+		Escribir '1. Registrar lote'
+		Escribir '2. Listar lotes'
+		Escribir '3. Buscar lote'
+		Escribir '4. Ordenar lotes por codigo'
+		Escribir '5. Actualizar estado'
+		Escribir '6. Resumen de lotes'
+		Escribir '7. Ordenar por litros (descendente)'
+		Escribir '0. Salir'
+		Escribir 'Seleccione una opcion:'
+		Leer opcion
+		Según opcion Hacer
+			1:
+				Si n<100 Entonces
+					Escribir 'Ingrese codigo (ejemplo LT-1234-567):'
+					Leer codigo
+					encontrado <- Falso
+					Para i<-0 Hasta n-1 Hacer
+						Si codigos[i]=codigo Entonces
+							encontrado <- Verdadero
+						FinSi
+					FinPara
+					Si encontrado Entonces
+						Escribir 'Error: codigo duplicado'
+					SiNo
+						Escribir 'Ingrese estilo de cerveza:'
+						Leer estilo
+						Escribir 'Ingrese litros (1 a 5000):'
+						Leer litros[n]
+						Mientras litros[n]<1 O litros[n]>5000 Hacer
+							Escribir 'Cantidad invalida. Ingrese litros de 1 a 5000:'
+							Leer litros[n]
+						FinMientras
+						Escribir 'Ingrese fecha (DD/MM/AAAA):'
+						Leer fecha
+						Escribir 'Ingrese responsable:'
+						Leer responsable
+						Escribir 'Ingrese estado:'
+						Escribir 'FERMENTACION, MADURACION,'
+						Escribir 'EMBOTELLADO o DESPACHADO'
+						Leer estado
+						Mientras estado<>'FERMENTACION' Y estado<>'MADURACION' Y estado<>'EMBOTELLADO' Y estado<>'DESPACHADO' Hacer
+							Escribir 'Estado invalido. Ingrese nuevamente:'
+							Leer estado
+						FinMientras
+						codigos[n] <- codigo
+						estilos[n] <- estilo
+						fechas[n] <- fecha
+						responsables[n] <- responsable
+						estados[n] <- estado
+						n <- n+1
+						Escribir 'Lote registrado correctamente'
+					FinSi
+				SiNo
+					Escribir 'No hay espacio para mas lotes'
+				FinSi
+			2:
+				Si n=0 Entonces
+					Escribir 'No hay lotes registrados'
+				SiNo
+					Para i<-0 Hasta n-1 Hacer
+						Escribir '----------------------------'
+						Escribir 'Codigo: ', codigos[i]
+						Escribir 'Estilo: ', estilos[i]
+						Escribir 'Litros: ', litros[i]
+						Escribir 'Fecha: ', fechas[i]
+						Escribir 'Responsable: ', responsables[i]
+						Escribir 'Estado: ', estados[i]
+					FinPara
+				FinSi
+			3:
+				Escribir 'Ingrese el codigo que desea buscar:'
+				Leer codigo
+				pos <- -1
+				Para i<-0 Hasta n-1 Hacer
+					Si codigos[i]=codigo Entonces
+						pos <- i
+					FinSi
+				FinPara
+				Si pos=-1 Entonces
+					Escribir 'Lote no encontrado'
+				SiNo
+					Escribir 'Codigo: ', codigos[pos]
+					Escribir 'Estilo: ', estilos[pos]
+					Escribir 'Litros: ', litros[pos]
+					Escribir 'Fecha: ', fechas[pos]
+					Escribir 'Responsable: ', responsables[pos]
+					Escribir 'Estado: ', estados[pos]
+				FinSi
+			4:
+				Para i<-1 Hasta n-1 Hacer
+					j <- i
+					Mientras j>0 Y codigos[j-1]>codigos[j] Hacer
+						aux <- codigos[j-1]
+						codigos[j-1]<-codigos[j]
+						codigos[j] <- aux
+						aux <- estilos[j-1]
+						estilos[j-1]<-estilos[j]
+						estilos[j] <- aux
+						auxLitros <- litros[j-1]
+						litros[j-1]<-litros[j]
+						litros[j] <- auxLitros
+						aux <- fechas[j-1]
+						fechas[j-1]<-fechas[j]
+						fechas[j] <- aux
+						aux <- responsables[j-1]
+						responsables[j-1]<-responsables[j]
+						responsables[j] <- aux
+						aux <- estados[j-1]
+						estados[j-1]<-estados[j]
+						estados[j] <- aux
+						j <- j-1
+					FinMientras
+				FinPara
+				Escribir 'Lotes ordenados por codigo'
+			5:
+				Escribir 'Ingrese el codigo del lote:'
+				Leer codigo
+				pos <- -1
+				Para i<-0 Hasta n-1 Hacer
+					Si codigos[i]=codigo Entonces
+						pos <- i
+					FinSi
+				FinPara
+				Si pos=-1 Entonces
+					Escribir 'Lote no encontrado'
+				SiNo
+					Escribir 'Estado actual: ', estados[pos]
+					Escribir 'Ingrese el nuevo estado:'
+					Leer estado
+					Mientras estado<>'FERMENTACION' Y estado<>'MADURACION' Y estado<>'EMBOTELLADO' Y estado<>'DESPACHADO' Hacer
+						Escribir 'Estado invalido. Intente nuevamente:'
+						Leer estado
+					FinMientras
+					estados[pos] <- estado
+					Escribir 'Estado actualizado correctamente'
+				FinSi
+			6:
+				Escribir '===== RESUMEN DE LOTES ====='
+				Escribir 'Total de lotes: ', n
+				Para i<-0 Hasta n-1 Hacer
+					Escribir codigos[i], ' - ', estados[i], ' - ', litros[i], ' litros'
+				FinPara
+			7:
+				Para i<-0 Hasta n-2 Hacer
+					mayor <- i
+					Para j<-i+1 Hasta n-1 Hacer
+						Si litros[j]>litros[mayor] Entonces
+							mayor <- j
+						FinSi
+					FinPara
+					Si mayor<>i Entonces
+						auxLitros <- litros[i]
+						litros[i] <- litros[mayor]
+						litros[mayor] <- auxLitros
+						aux <- codigos[i]
+						codigos[i] <- codigos[mayor]
+						codigos[mayor] <- aux
+						aux <- estilos[i]
+						estilos[i] <- estilos[mayor]
+						estilos[mayor] <- aux
+						aux <- fechas[i]
+						fechas[i] <- fechas[mayor]
+						fechas[mayor] <- aux
+						aux <- responsables[i]
+						responsables[i] <- responsables[mayor]
+						responsables[mayor] <- aux
+						aux <- estados[i]
+						estados[i] <- estados[mayor]
+						estados[mayor] <- aux
+					FinSi
+				FinPara
+				Escribir 'Lotes ordenados por litros de mayor a menor'
+			0:
+				Escribir 'Saliendo del sistema...'
+			De Otro Modo:
+				Escribir 'Opcion no valida'
+		FinSegún
+	Hasta Que opcion=0
+FinAlgoritmo
