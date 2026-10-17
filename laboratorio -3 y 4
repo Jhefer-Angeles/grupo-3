@@ -29,26 +29,6 @@ def etapa1_lista_unidimensional():
     else:
         print(f"  El {buscado} NO existe en la lista.")
 
-def etapa2_matriz():
-    titulo("TEMA 3 - ETAPA 2: Matriz 3x3")
-    matriz = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-
-    for i in range(3):
-        for j in range(3):
-            matriz[i][j] = leer_entero(f"  Elemento [{i}][{j}]: ")
-
-    print("\nMatriz ingresada:")
-    for i in range(3):
-        for j in range(3):
-            print(f"{matriz[i][j]:5}", end="")
-        print()
-
-    suma = 0
-    for fila in matriz:
-        for valor in fila:
-            suma += valor
-    print(f"\nSuma total de los elementos: {suma}")
-
 def etapa3_menu_lista():
     titulo("TEMA 3 - ETAPA 3: Operaciones sobre una lista dinámica")
     lista = []
