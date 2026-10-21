@@ -1,196 +1,249 @@
-Algoritmo SistemaLotesCerveceria
-	Definir codigos, estilos, fechas, responsables, estados Como Cadena
-	Definir litros Como Entero
-	Definir n, opcion, i, pos, j, mayor, auxLitros Como Entero
-	Definir codigo, estilo, fecha, responsable, estado Como Cadena
-	Definir aux Como Cadena
-	Definir encontrado Como Lógico
-	Dimensionar codigos(100)
-	Dimensionar estilos(100)
-	Dimensionar fechas(100)
-	Dimensionar responsables(100)
-	Dimensionar estados(100)
-	Dimensionar litros(100)
-	n <- 0
+// ===== FUNCIONES =====
+Funcion r <- es_numero_entero_positivo(texto)
+	// Verdadero si el texto no está vacío y todos sus caracteres son dígitos
+	Definir r, encontrado Como Logico
+	Definir i, j Como Entero
+	r <- Longitud(texto) > 0
+	Para i <- 1 Hasta Longitud(texto) Con Paso 1 Hacer
+		encontrado <- Falso
+		Para j <- 1 Hasta 10 Con Paso 1 Hacer
+			Si Subcadena(texto, i, i) = Subcadena("0123456789", j, j) Entonces
+				encontrado <- Verdadero
+			FinSi
+		FinPara
+		Si No encontrado Entonces
+			r <- Falso
+		FinSi
+	FinPara
+FinFuncion
+
+Funcion r <- es_ruc_valido(ruc)
+	// Validación básica: exactamente 11 dígitos.
+	// No verifica el dígito de control del RUC.
+	Definir r Como Logico
+	r <- Falso
+	Si Longitud(ruc) = 11 Entonces
+		r <- es_numero_entero_positivo(ruc)
+	FinSi
+FinFuncion
+
+Funcion r <- es_litros_valido(texto)
+	Definir r Como Logico
+	r <- Falso
+	Si es_numero_entero_positivo(texto) Entonces
+		Si ConvertirANumero(texto) > 0 Entonces
+			r <- Verdadero
+		FinSi
+	FinSi
+FinFuncion
+
+Funcion r <- es_fecha_valida(fecha)
+	// Validación básica: DD/MM/AAAA.
+	// Admite días del 1 al 31; no distingue la duración de cada mes.
+	Definir r Como Logico
+	Definir texto_dia, texto_mes, texto_anio Como Caracter
+	Definir dia, mes, anio Como Entero
+	r <- Falso
+	Si Longitud(fecha) = 10 Entonces
+		Si Subcadena(fecha, 3, 3) = "/" Y Subcadena(fecha, 6, 6) = "/" Entonces
+			texto_dia <- Subcadena(fecha, 1, 2)
+			texto_mes <- Subcadena(fecha, 4, 5)
+			texto_anio <- Subcadena(fecha, 7, 10)
+			Si es_numero_entero_positivo(texto_dia) Y es_numero_entero_positivo(texto_mes) Y es_numero_entero_positivo(texto_anio) Entonces
+				dia <- ConvertirANumero(texto_dia)
+				mes <- ConvertirANumero(texto_mes)
+				anio <- ConvertirANumero(texto_anio)
+				r <- (dia >= 1 Y dia <= 31) Y (mes >= 1 Y mes <= 12) Y anio >= 1
+			FinSi
+		FinSi
+	FinSi
+FinFuncion
+
+// ===== PROGRAMA PRINCIPAL =====
+
+Algoritmo mesa_de_partes_cajacha
+	Definir total, opcion, i, j, pos, num_estilo, litros, aux_num Como Entero
+	Definir codigos, clientes, rucs, fechas Como Caracter
+	Definir estilos, cantidades Como Entero
+	Definir opcion_txt, estilo_txt, litros_txt, cliente, ruc, fecha, buscado, codigo, aux_txt Como Caracter
+	Definir datos_validos, salir, opcion_ok Como Logico
+	
+	Dimension codigos[100]
+	Dimension clientes[100]
+	Dimension rucs[100]
+	Dimension estilos[100]
+	Dimension cantidades[100]
+	Dimension fechas[100]
+	
+	total <- 0
+	salir <- Falso
+	
+	Para i <- 1 Hasta 100 Con Paso 1 Hacer
+		codigos[i] <- ""
+		clientes[i] <- ""
+		rucs[i] <- ""
+		estilos[i] <- 0
+		cantidades[i] <- 0
+		fechas[i] <- ""
+	FinPara
+	
+	Escribir "Cargando pedidos desde pedidos.txt..."
+	
 	Repetir
-		Escribir ''
-		Escribir '===== SISTEMA DE LOTES DE CERVECERIA ====='
-		Escribir '1. Registrar lote'
-		Escribir '2. Listar lotes'
-		Escribir '3. Buscar lote'
-		Escribir '4. Ordenar lotes por codigo'
-		Escribir '5. Actualizar estado'
-		Escribir '6. Resumen de lotes'
-		Escribir '7. Ordenar por litros (descendente)'
-		Escribir '0. Salir'
-		Escribir 'Seleccione una opcion:'
-		Leer opcion
-		Según opcion Hacer
-			1:
-				Si n<100 Entonces
-					Escribir 'Ingrese codigo (ejemplo LT-1234-567):'
-					Leer codigo
-					encontrado <- Falso
-					Para i<-0 Hasta n-1 Hacer
-						Si codigos[i]=codigo Entonces
-							encontrado <- Verdadero
+		Escribir ""
+		Escribir "=== MESA DE PARTES DIGITAL - CAJACHA ==="
+		Escribir "1. Registrar | 2. Consultar | 3. Ordenar | 4. Listar | 5. Salir"
+		Escribir Sin Saltar "Seleccione opcion (1-5): "
+		Leer opcion_txt
+		
+		opcion_ok <- Falso
+		Si es_numero_entero_positivo(opcion_txt) Entonces
+			opc <- ConvertirANumero(opcion_txt)
+			Si opc >= 1 Y opc <= 5 Entonces
+				opcion_ok <- Verdadero
+			FinSi
+		FinSi
+		
+		Si No opcion_ok Entonces
+			Escribir "Opcion no valida. Ingrese un numero del 1 al 5."
+		Sino
+			Segun opcion Hacer
+				
+				1:
+					Escribir "Ingrese cliente, RUC, estilo, litros y fecha de entrega:"
+					
+					Escribir Sin Saltar "Cliente: "
+					Leer cliente
+					Escribir Sin Saltar "RUC: "
+					Leer ruc
+					
+					Escribir Sin Saltar "Estilo (1-5): "
+					Leer estilo_txt
+					Si es_numero_entero_positivo(estilo_txt) Entonces
+						num_estilo <- ConvertirANumero(estilo_txt)
+					Sino
+						num_estilo <- 0
+					FinSi
+					
+					Escribir Sin Saltar "Litros: "
+					Leer litros_txt
+					Escribir Sin Saltar "Fecha de entrega (DD/MM/AAAA): "
+					Leer fecha
+					
+					datos_validos <- Falso
+					Si cliente <> "" Y es_ruc_valido(ruc) Y (num_estilo >= 1 Y num_estilo <= 5) Y es_litros_valido(litros_txt) Y es_fecha_valida(fecha) Entonces
+						datos_validos <- Verdadero
+					FinSi
+					
+					Si datos_validos Entonces
+						Si total < 100 Entonces
+							litros <- ConvertirANumero(litros_txt)
+							
+							aux_num <- total + 1
+							aux_txt <- ConvertirATexto(aux_num)
+							Si aux_num < 10 Entonces
+								codigo <- "PED-00" + aux_txt
+							Sino
+								Si aux_num < 100 Entonces
+									codigo <- "PED-0" + aux_txt
+								Sino
+									codigo <- "PED-" + aux_txt
+								FinSi
+							FinSi
+							
+							codigos[total + 1] <- codigo
+							clientes[total + 1] <- cliente
+							rucs[total + 1] <- ruc
+							estilos[total + 1] <- num_estilo
+							cantidades[total + 1] <- litros
+							fechas[total + 1] <- fecha
+							
+							total <- total + 1
+							
+							Escribir "Pedido registrado y guardado."
+							Escribir "Codigo: ", codigo
+						Sino
+							Escribir "No se pueden registrar mas de 100 pedidos."
+						FinSi
+					Sino
+						Escribir "Error: datos invalidos."
+					FinSi
+					
+				2:
+					Escribir Sin Saltar "Ingrese codigo a buscar: "
+					Leer buscado
+					buscado <- Mayusculas(buscado)
+					pos <- -1
+					
+					Para i <- 1 Hasta total Con Paso 1 Hacer
+						Si codigos[i] = buscado Entonces
+							pos <- i
 						FinSi
 					FinPara
-					Si encontrado Entonces
-						Escribir 'Error: codigo duplicado'
-					SiNo
-						Escribir 'Ingrese estilo de cerveza:'
-						Leer estilo
-						Escribir 'Ingrese litros (1 a 5000):'
-						Leer litros[n]
-						Mientras litros[n]<1 O litros[n]>5000 Hacer
-							Escribir 'Cantidad invalida. Ingrese litros de 1 a 5000:'
-							Leer litros[n]
-						FinMientras
-						Escribir 'Ingrese fecha (DD/MM/AAAA):'
-						Leer fecha
-						Escribir 'Ingrese responsable:'
-						Leer responsable
-						Escribir 'Ingrese estado:'
-						Escribir 'FERMENTACION, MADURACION,'
-						Escribir 'EMBOTELLADO o DESPACHADO'
-						Leer estado
-						Mientras estado<>'FERMENTACION' Y estado<>'MADURACION' Y estado<>'EMBOTELLADO' Y estado<>'DESPACHADO' Hacer
-							Escribir 'Estado invalido. Ingrese nuevamente:'
-							Leer estado
-						FinMientras
-						codigos[n] <- codigo
-						estilos[n] <- estilo
-						fechas[n] <- fecha
-						responsables[n] <- responsable
-						estados[n] <- estado
-						n <- n+1
-						Escribir 'Lote registrado correctamente'
+					
+					Si pos = -1 Entonces
+						Escribir "Pedido no encontrado."
+					Sino
+						Escribir "Codigo: ", codigos[pos]
+						Escribir "Cliente: ", clientes[pos]
+						Escribir "RUC: ", rucs[pos]
+						Escribir "Estilo: ", estilos[pos]
+						Escribir "Litros: ", cantidades[pos]
+						Escribir "Fecha: ", fechas[pos]
 					FinSi
-				SiNo
-					Escribir 'No hay espacio para mas lotes'
-				FinSi
-			2:
-				Si n=0 Entonces
-					Escribir 'No hay lotes registrados'
-				SiNo
-					Para i<-0 Hasta n-1 Hacer
-						Escribir '----------------------------'
-						Escribir 'Codigo: ', codigos[i]
-						Escribir 'Estilo: ', estilos[i]
-						Escribir 'Litros: ', litros[i]
-						Escribir 'Fecha: ', fechas[i]
-						Escribir 'Responsable: ', responsables[i]
-						Escribir 'Estado: ', estados[i]
+					
+				3:
+					Escribir "Ordenando por codigo (burbuja)..."
+					
+					Para i <- 1 Hasta total - 1 Con Paso 1 Hacer
+						Para j <- 1 Hasta total - i Con Paso 1 Hacer
+							Si codigos[j] > codigos[j + 1] Entonces
+								aux_txt <- codigos[j]
+								codigos[j] <- codigos[j + 1]
+								codigos[j + 1] <- aux_txt
+								
+								aux_txt <- clientes[j]
+								clientes[j] <- clientes[j + 1]
+								clientes[j + 1] <- aux_txt
+								
+								aux_txt <- rucs[j]
+								rucs[j] <- rucs[j + 1]
+								rucs[j + 1] <- aux_txt
+								
+								aux_num <- estilos[j]
+								estilos[j] <- estilos[j + 1]
+								estilos[j + 1] <- aux_num
+								
+								aux_num <- cantidades[j]
+								cantidades[j] <- cantidades[j + 1]
+								cantidades[j + 1] <- aux_num
+								
+								aux_txt <- fechas[j]
+								fechas[j] <- fechas[j + 1]
+								fechas[j + 1] <- aux_txt
+							FinSi
+						FinPara
 					FinPara
-				FinSi
-			3:
-				Escribir 'Ingrese el codigo que desea buscar:'
-				Leer codigo
-				pos <- -1
-				Para i<-0 Hasta n-1 Hacer
-					Si codigos[i]=codigo Entonces
-						pos <- i
+					
+					Escribir "Pedidos ordenados por codigo."
+					
+				4:
+					Si total = 0 Entonces
+						Escribir "No hay pedidos registrados."
+					Sino
+						Para i <- 1 Hasta total Con Paso 1 Hacer
+							Escribir codigos[i], " | ", clientes[i], " | RUC: ", rucs[i], " | Estilo: ", estilos[i], " | Litros: ", cantidades[i], " | Fecha: ", fechas[i]
+						FinPara
+						
+						Escribir "Mostrar pedidos registrados."
 					FinSi
-				FinPara
-				Si pos=-1 Entonces
-					Escribir 'Lote no encontrado'
-				SiNo
-					Escribir 'Codigo: ', codigos[pos]
-					Escribir 'Estilo: ', estilos[pos]
-					Escribir 'Litros: ', litros[pos]
-					Escribir 'Fecha: ', fechas[pos]
-					Escribir 'Responsable: ', responsables[pos]
-					Escribir 'Estado: ', estados[pos]
-				FinSi
-			4:
-				Para i<-1 Hasta n-1 Hacer
-					j <- i
-					Mientras j>0 Y codigos[j-1]>codigos[j] Hacer
-						aux <- codigos[j-1]
-						codigos[j-1]<-codigos[j]
-						codigos[j] <- aux
-						aux <- estilos[j-1]
-						estilos[j-1]<-estilos[j]
-						estilos[j] <- aux
-						auxLitros <- litros[j-1]
-						litros[j-1]<-litros[j]
-						litros[j] <- auxLitros
-						aux <- fechas[j-1]
-						fechas[j-1]<-fechas[j]
-						fechas[j] <- aux
-						aux <- responsables[j-1]
-						responsables[j-1]<-responsables[j]
-						responsables[j] <- aux
-						aux <- estados[j-1]
-						estados[j-1]<-estados[j]
-						estados[j] <- aux
-						j <- j-1
-					FinMientras
-				FinPara
-				Escribir 'Lotes ordenados por codigo'
-			5:
-				Escribir 'Ingrese el codigo del lote:'
-				Leer codigo
-				pos <- -1
-				Para i<-0 Hasta n-1 Hacer
-					Si codigos[i]=codigo Entonces
-						pos <- i
-					FinSi
-				FinPara
-				Si pos=-1 Entonces
-					Escribir 'Lote no encontrado'
-				SiNo
-					Escribir 'Estado actual: ', estados[pos]
-					Escribir 'Ingrese el nuevo estado:'
-					Leer estado
-					Mientras estado<>'FERMENTACION' Y estado<>'MADURACION' Y estado<>'EMBOTELLADO' Y estado<>'DESPACHADO' Hacer
-						Escribir 'Estado invalido. Intente nuevamente:'
-						Leer estado
-					FinMientras
-					estados[pos] <- estado
-					Escribir 'Estado actualizado correctamente'
-				FinSi
-			6:
-				Escribir '===== RESUMEN DE LOTES ====='
-				Escribir 'Total de lotes: ', n
-				Para i<-0 Hasta n-1 Hacer
-					Escribir codigos[i], ' - ', estados[i], ' - ', litros[i], ' litros'
-				FinPara
-			7:
-				Para i<-0 Hasta n-2 Hacer
-					mayor <- i
-					Para j<-i+1 Hasta n-1 Hacer
-						Si litros[j]>litros[mayor] Entonces
-							mayor <- j
-						FinSi
-					FinPara
-					Si mayor<>i Entonces
-						auxLitros <- litros[i]
-						litros[i] <- litros[mayor]
-						litros[mayor] <- auxLitros
-						aux <- codigos[i]
-						codigos[i] <- codigos[mayor]
-						codigos[mayor] <- aux
-						aux <- estilos[i]
-						estilos[i] <- estilos[mayor]
-						estilos[mayor] <- aux
-						aux <- fechas[i]
-						fechas[i] <- fechas[mayor]
-						fechas[mayor] <- aux
-						aux <- responsables[i]
-						responsables[i] <- responsables[mayor]
-						responsables[mayor] <- aux
-						aux <- estados[i]
-						estados[i] <- estados[mayor]
-						estados[mayor] <- aux
-					FinSi
-				FinPara
-				Escribir 'Lotes ordenados por litros de mayor a menor'
-			0:
-				Escribir 'Saliendo del sistema...'
-			De Otro Modo:
-				Escribir 'Opcion no valida'
-		FinSegún
-	Hasta Que opcion=0
+					
+				5:
+					Escribir "Guardando pedidos en pedidos.txt..."
+					Escribir "Saliendo del sistema. Hasta pronto."
+					salir <- Verdadero
+					
+			FinSegun
+		FinSi
+	Hasta Que salir
 FinAlgoritmo
