@@ -1,18 +1,15 @@
-     def es_numero_entero_positivo(texto):
+def es_numero_entero_positivo(texto):
     return len(texto) > 0 and all(
         caracter in "0123456789" for caracter in texto
     )
-
 
 def es_ruc_valido(ruc):
     # Validación básica: exactamente 11 dígitos.
     # No verifica el dígito de control del RUC.
     return len(ruc) == 11 and es_numero_entero_positivo(ruc)
 
-
 def es_litros_valido(texto):
     return es_numero_entero_positivo(texto) and int(texto) > 0
-
 
 def es_fecha_valida(fecha):
     # Validación básica: DD/MM/AAAA.
@@ -25,20 +22,19 @@ def es_fecha_valida(fecha):
 
     texto_dia = fecha[0:2]
     texto_mes = fecha[3:5]
-    texto_anio = fecha[6:10]
+    texto_año = fecha[6:10]
 
     if not all(
         es_numero_entero_positivo(parte)
-        for parte in (texto_dia, texto_mes, texto_anio)
+        for parte in (texto_dia, texto_mes, texto_año)
     ):
         return False
 
     dia = int(texto_dia)
     mes = int(texto_mes)
-    anio = int(texto_anio)
+    año = int(texto_año)
 
-    return 1 <= dia <= 31 and 1 <= mes <= 12 and anio >= 1
-
+    return 1 <= dia <= 31 and 1 <= mes <= 12 and año >= 1
 
 def mesa_de_partes_cajacha():
     total = 0
@@ -47,7 +43,7 @@ def mesa_de_partes_cajacha():
     clientes = [""] * 100
     rucs = [""] * 100
     estilos = [0] * 100
-    cantidades = [0] * 100
+    cantidades = [0] * 100 
     fechas = [""] * 100
 
     print("Cargando pedidos desde pedidos.txt...")
@@ -143,23 +139,18 @@ def mesa_de_partes_cajacha():
                         codigos[j], codigos[j + 1] = (
                             codigos[j + 1], codigos[j]
                         )
-
                         clientes[j], clientes[j + 1] = (
                             clientes[j + 1], clientes[j]
                         )
-
                         rucs[j], rucs[j + 1] = (
                             rucs[j + 1], rucs[j]
                         )
-
                         estilos[j], estilos[j + 1] = (
                             estilos[j + 1], estilos[j]
                         )
-
                         cantidades[j], cantidades[j + 1] = (
                             cantidades[j + 1], cantidades[j]
                         )
-
                         fechas[j], fechas[j + 1] = (
                             fechas[j + 1], fechas[j]
                         )
@@ -185,7 +176,6 @@ def mesa_de_partes_cajacha():
             print("Guardando pedidos en pedidos.txt...")
             print("Saliendo del sistema. Hasta pronto.")
             break
-
 
 if __name__ == "__main__":
     mesa_de_partes_cajacha()
