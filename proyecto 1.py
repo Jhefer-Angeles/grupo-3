@@ -1,550 +1,191 @@
-using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using ProductosBreeze1.Models;
-
-namespace ProductosBreeze1.Controllers
-{
-    public class HomeController : Controller
-    {
-        private readonly ILogger<HomeController> _logger;
-
-        public HomeController(ILogger<HomeController> logger)
-        {
-            _logger = logger;
-        }
-
-        public IActionResult Index()
-        {
-            return View();0
-        }
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
-
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-    }
-}
-namespace ProductosBreeze1.Controllers
-{
-    [Authorize(Roles = "Admin,Empleado")]
-    public class InventarioController : Controller
-    {
-        private readonly AppDbContext _context;
-
-        public InventarioController(AppDbContext context)
-        {
-            _context = context;
-        }
-
-
-        // 1. MENÚ PRINCIPAL
-        public async Task<IActionResult> Menu()
-        {
-            ViewBag.TotalProductos = await _context.Productos.CountAsync();
-            ViewBag.BajoStock = await _context.Productos.CountAsync(p => p.Stock < 5);
-            ViewBag.VentasHoy = await _context.Ventas.Where(v => v.FechaHora.Date == DateTime.Today).CountAsync();
-            return View();
-        }
-
-        // 2. REGISTRAR PRODUCTO (Solo Admin)
-        [Authorize(Roles = "Admin")]
-        public IActionResult RegistrarProducto() => View();
-
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RegistrarProducto(Producto producto)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(producto);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(MostrarProductos));
-            }
-            return View(producto);
-        }
-
-        // 3. INGRESAR STOCK
-        public async Task<IActionResult> IngresarStock()
-        {
-            ViewBag.Productos = await _context.Productos.ToListAsync();
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> IngresarStock(int productoId, int cantidad)
-        {
-            var producto = await _context.Productos.FindAsync(productoId);
-            if (producto != null && cantidad > 0)
-            {
-                producto.Stock += cantidad;
-
-                var historial = new HistorialIngreso
-                {
-                    Empleado = User.Identity.Name ?? "Empleado",
-                    ProductoId = productoId,
-                    Cantidad = cantidad,
-                    FechaHora = DateTime.Now
-                };
-
-                _context.Add(historial);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(MostrarProductos));
-            }
-            return RedirectToAction(nameof(IngresarStock));
-        }
-
-        // 4. SALIDA DE STOCK / VENTA
-        public async Task<IActionResult> SalidaStock()
-        {
-            ViewBag.Productos = await _context.Productos.Where(p => p.Stock > 0).ToListAsync();
-            return View();
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RegistrarVenta(string cliente, string metodoPago, int[] productoIds, int[] cantidades)
-        {
-            if (string.IsNullOrEmpty(cliente) || productoIds == null || productoIds.Length == 0)
-            {
-                return RedirectToAction(nameof(SalidaStock));
-            }
-
-            var venta = new Venta
-            {
-                Cliente = cliente,
-                MetodoPago = metodoPago,
-                Empleado = User.Identity.Name ?? "Empleado",
-                FechaHora = DateTime.Now,
-                Total = 0
-            };
-
-            decimal totalVenta = 0;
-
-            for (int i = 0; i < productoIds.Length; i++)
-            {
-                int pId = productoIds[i];
-                int cant = cantidades[i];
-
-                var prod = await _context.Productos.FindAsync(pId);
-                if (prod != null && prod.Stock >= cant && cant > 0)
-                {
-                    prod.Stock -= cant;
-                    var detalle = new DetalleVenta
-                    {
-                        ProductoId = pId,
-                        Cantidad = cant,
-                        PrecioUnitario = prod.Precio
-                    };
-                    venta.Detalles.Add(detalle);
-                    totalVenta += prod.Precio * cant;
-                }
-            }
-
-            if (venta.Detalles.Count > 0)
-            {
-                venta.Total = totalVenta;
-                _context.Add(venta);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Comprobante), new { id = venta.Id });
-            }
-
-            return RedirectToAction(nameof(SalidaStock));
-        }
-
-        // COMPROBANTE DE PAGO
-        public async Task<IActionResult> Comprobante(int id)
-        {
-            var venta = await _context.Ventas
-                .Include(v => v.Detalles)
-                .ThenInclude(d => d.Producto)
-                .FirstOrDefaultAsync(v => v.Id == id);
-
-            if (venta == null) return NotFound();
-            return View(venta);
-        }
-
-        // 5 & 6. MOSTRAR TODOS LOS PRODUCTOS Y BUSCAR
-        public async Task<IActionResult> MostrarProductos(string buscar)
-        {
-            var productos = from p in _context.Productos select p;
-
-            if (!string.IsNullOrEmpty(buscar))
-            {
-                productos = productos.Where(p => p.Nombre.ToLower().Contains(buscar.ToLower()));
-            }
-
-            ViewBag.Busqueda = buscar;
-            return View(await productos.ToListAsync());
-        }
-
-        // EDITAR (Solo Admin)
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Editar(int id)
-        {
-            var producto = await _context.Productos.FindAsync(id);
-            if (producto == null) return NotFound();
-            return View(producto);
-        }
-
-        [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Editar(Producto producto)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Update(producto);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(MostrarProductos));
-            }
-            return View(producto);
-        }
-
-        // ELIMINAR (Solo Admin)
-        [Authorize(Roles = "Admin")]
-        public async Task<IActionResult> Eliminar(int id)
-        {
-            var producto = await _context.Productos.FindAsync(id);
-            if (producto != null)
-            {
-                _context.Productos.Remove(producto);
-                await _context.SaveChangesAsync();
-            }
-            return RedirectToAction(nameof(MostrarProductos));
-        }
-
-        // 7. ALERTAS DE STOCK
-        public async Task<IActionResult> AlertasStock()
-        {
-            var productos = await _context.Productos.ToListAsync();
-            return View(productos);
-        }
-
-        // 8. HISTORIAL DE INGRESOS
-        public async Task<IActionResult> HistorialIngresos()
-        {
-            var historial = await _context.HistorialIngresos.Include(h => h.Producto).OrderByDescending(h => h.FechaHora).ToListAsync();
-            return View(historial);
-        }
-
-        // 9. HISTORIAL DE VENTAS
-        public async Task<IActionResult> HistorialVentas()
-        {
-            var ventas = await _context.Ventas.OrderByDescending(v => v.FechaHora).ToListAsync();
-            return View(ventas);
-        }
-    }
-}
-namespace ProductosBreeze1.Controllers
-{
-    public class LoginController : Controller
-    {
-        private readonly AppDbContext _dbconext;
-
-        public LoginController(AppDbContext dbcontext)
-        {
-            _dbconext = dbcontext;
-        }
-
-        [HttpGet]
-        public IActionResult Registro()
-        {
-            ViewBag.Roles = _dbconext.Roles.ToList();
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Registro(UserVM model)
-        {
-            if (model.Pass != model.RepPass)
-            {
-                ViewData["Mensaje"] = "Las contraseñas no coinciden";
-                ViewBag.Roles = _dbconext.Roles.ToList();
-                return View();
-            }
-
-            Usuario usuario = new Usuario()
-            {
-                NameUser = model.Name,
-                Email = model.Email,
-                Password = model.Pass,
-                RolId = model.IdRol
-            };
-
-            await _dbconext.Usuarios.AddAsync(usuario);
-            await _dbconext.SaveChangesAsync();
-
-            if (usuario.idUsuario != 0) return RedirectToAction("Login", "Login");
-
-            ViewData["Mensaje"] = "El usuario no pudo crearse";
-            ViewBag.Roles = _dbconext.Roles.ToList();
-            return View();
-        }
-
-        [HttpGet]
-        public IActionResult Login()
-        {
-            return View();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Login(LoginVM model)
-        {
-            // Buscamos el usuario incluyendo los datos de su tabla de Roles vinculada
-            Usuario? usuario_encontrado = await _dbconext.Usuarios
-                .Include(u => u.Roles)
-                .Where(u => u.Email == model.Email && u.Password == model.Password)
-                .FirstOrDefaultAsync();
-
-            if (usuario_encontrado == null)
-            {
-                ViewData["Mensaje"] = "No se encontraron usuarios";
-                return View();
-            }
-
-            // ==========================================
-            // 🔐 CONSTRUCCIÓN DE LA COOKIE DE AUTENTICACIÓN
-            // ==========================================
-            var claims = new List<Claim>
-            {
-                // Guardamos el nombre de usuario y su Rol para que el _Layout lo lea automáticamente
-                new Claim(ClaimTypes.Name, usuario_encontrado.NameUser),
-                new Claim(ClaimTypes.Role, usuario_encontrado.Roles.Nombre)
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-            // Guardamos físicamente la cookie en el navegador del usuario
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-            // ==========================================
-            // 🔄 REDIRECCIÓN EN BASE AL ROL DEL USUARIO
-            // ==========================================
-            switch (usuario_encontrado.Roles.Nombre)
-            {
-                case "Admin":
-                    // El Administrador ingresa directo al Menú General de Inventario
-                    return RedirectToAction("Menu", "Inventario");
-
-                case "User":
-                    // El rol "User" (Empleado) también entra al inventario, pero las restricciones se validan en las acciones
-                    return RedirectToAction("Menu", "Inventario");
-
-                case "Person":
-                    return RedirectToAction("Registro", "Login");
-
-                default:
-                    return RedirectToAction("Menu", "Inventario");
-            }
-        }
-
-        // Método extra muy útil para cuando deseen cerrar sesión de forma segura
-        [HttpGet]
-        public async Task<IActionResult> Salir()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login", "Login");
-        }
-    }
-}
-namespace ProductosBreeze1.Data
-{
-    public class AppDbContext : DbContext
-    {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
-        {
-
-        }
-        public DbSet<Usuario> Usuarios { get; set; }
-        public DbSet<Roles> Roles { get; set; }
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<Usuario>()
-                .HasOne(u => u.Roles)
-                .WithMany(r => r.Usuarios)
-                .HasForeignKey(u => u.RolId);
-
-            modelBuilder.Entity<Roles>().HasData(
-                new Roles { IdRol = 1, Nombre = "Admin" },
-                new Roles { IdRol = 2, Nombre = "User" },
-                new Roles { IdRol = 3, Nombre = "Person" }
-            );
-
-            modelBuilder.Entity<Usuario>().HasData(
-                new Usuario { idUsuario = 1, NameUser = "Juan Perez", Email = "juanito@gmail.com", Password = "123456", RolId = 2 }
-            );
-            base.OnModelCreating(modelBuilder);
-
-        }
-
-        public DbSet<Producto> Productos { get; set; }
-            public DbSet<HistorialIngreso> HistorialIngresos { get; set; }
-            public DbSet<Venta> Ventas { get; set; }
-            public DbSet<DetalleVenta> DetallesVentas { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class DetalleVenta
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public int VentaId { get; set; }
-        public virtual Venta Venta { get; set; }
-
-        [Required]
-        public int ProductoId { get; set; }
-        public virtual Producto Producto { get; set; }
-
-        [Required]
-        public int Cantidad { get; set; }
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal PrecioUnitario { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class ErrorViewModel
-    {
-        public string? RequestId { get; set; }
-
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class HistorialIngreso
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public string Empleado { get; set; }
-
-        [Required]
-        public int ProductoId { get; set; }
-        public virtual Producto Producto { get; set; }
-
-        [Required]
-        [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor a 0.")]
-        public int Cantidad { get; set; }
-
-        [Required]
-        public DateTime FechaHora { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class Producto
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required(ErrorMessage = "El nombre del producto es obligatorio.")]
-        [StringLength(100)]
-        public string Nombre { get; set; }
-
-        [Required(ErrorMessage = "La marca es obligatoria.")]
-        [StringLength(50)]
-        public string Marca { get; set; }
-
-        [Required(ErrorMessage = "La categoría es obligatoria.")]
-        [StringLength(50)]
-        public string Categoria { get; set; }
-        public string UnidadMedida { get; set; } = string.Empty;
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal CantidadMedida { get; set; }
-
-        [Required(ErrorMessage = "El precio es obligatorio.")]
-        [Column(TypeName = "decimal(18,2)")]
-        [Range(0.01, double.MaxValue, ErrorMessage = "El precio debe ser mayor a 0.")]
-        public decimal Precio { get; set; }
-
-        [Required(ErrorMessage = "El stock inicial es obligatorio.")]
-        [Range(0, int.MaxValue, ErrorMessage = "El stock no puede ser negativo.")]
-        public int Stock { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class Roles
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int IdRol { get; set; }
-        [Required, StringLength(50)]
-        public string Nombre { get; set; }
-        public ICollection<Usuario> Usuarios { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class Usuario
-    {
-        [Key, DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int idUsuario { get; set; }
-        [Required, StringLength(50)]
-        public string NameUser { get; set; }
-        [Required, StringLength(50)]
-        public string Email { get; set; }
-        [Required, StringLength(50)]
-        public string Password { get; set; }
-        public int RolId { get; set; }
-        public Roles Roles { get; set; }
-    }
-}
-namespace ProductosBreeze1.Models
-{
-    public class Venta
-    {
-        [Key]
-        public int Id { get; set; }
-
-        [Required]
-        public string Empleado { get; set; }
-
-        [Required(ErrorMessage = "El nombre del cliente es obligatorio.")]
-        public string Cliente { get; set; }
-
-        [Required]
-        public DateTime FechaHora { get; set; }
-
-        [Required]
-        public string MetodoPago { get; set; } // Efectivo, Yape, Transferencia
-
-        [Column(TypeName = "decimal(18,2)")]
-        public decimal Total { get; set; }
-
-        public virtual List<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
-    }
-}
-namespace ProductosBreeze1.ViewModels
-{
-    public class LoginVM
-    {
-        public string Email { get; set; }
-        public string Password { get; set; }
-    }
-}
-namespace ProductosBreeze1.ViewModels
-{
-    public class UserVM
-    {
-        public string Name { get; set; }
-        public string Email { get; set; }
-        public string Pass { get; set; }
-        public string RepPass { get; set; }
-        public int IdRol { get; set; }
-    }
-}
+     def es_numero_entero_positivo(texto):
+    return len(texto) > 0 and all(
+        caracter in "0123456789" for caracter in texto
+    )
+
+
+def es_ruc_valido(ruc):
+    # Validación básica: exactamente 11 dígitos.
+    # No verifica el dígito de control del RUC.
+    return len(ruc) == 11 and es_numero_entero_positivo(ruc)
+
+
+def es_litros_valido(texto):
+    return es_numero_entero_positivo(texto) and int(texto) > 0
+
+
+def es_fecha_valida(fecha):
+    # Validación básica: DD/MM/AAAA.
+    # Admite días del 1 al 31; no distingue la duración de cada mes.
+    if len(fecha) != 10:
+        return False
+
+    if fecha[2] != "/" or fecha[5] != "/":
+        return False
+
+    texto_dia = fecha[0:2]
+    texto_mes = fecha[3:5]
+    texto_anio = fecha[6:10]
+
+    if not all(
+        es_numero_entero_positivo(parte)
+        for parte in (texto_dia, texto_mes, texto_anio)
+    ):
+        return False
+
+    dia = int(texto_dia)
+    mes = int(texto_mes)
+    anio = int(texto_anio)
+
+    return 1 <= dia <= 31 and 1 <= mes <= 12 and anio >= 1
+
+
+def mesa_de_partes_cajacha():
+    total = 0
+
+    codigos = [""] * 100
+    clientes = [""] * 100
+    rucs = [""] * 100
+    estilos = [0] * 100
+    cantidades = [0] * 100
+    fechas = [""] * 100
+
+    print("Cargando pedidos desde pedidos.txt...")
+
+    while True:
+        print()
+        print("=== MESA DE PARTES DIGITAL - CAJACHA ===")
+        print(
+            "1. Registrar | 2. Consultar | 3. Ordenar | "
+            "4. Listar | 5. Salir"
+        )
+
+        try:
+            opcion = int(input("Seleccione opcion (1-5): "))
+        except ValueError:
+            print("Opcion no valida. Ingrese un numero del 1 al 5.")
+            continue
+
+        if not 1 <= opcion <= 5:
+            print("Opcion no valida. Ingrese un numero del 1 al 5.")
+            continue
+
+        if opcion == 1:
+            print(
+                "Ingrese cliente, RUC, estilo, litros "
+                "y fecha de entrega:"
+            )
+
+            cliente = input("Cliente: ")
+            ruc = input("RUC: ")
+
+            try:
+                num_estilo = int(input("Estilo (1-5): "))
+            except ValueError:
+                num_estilo = 0
+
+            litros_txt = input("Litros: ")
+            fecha = input("Fecha de entrega (DD/MM/AAAA): ")
+
+            datos_validos = (
+                cliente != ""
+                and es_ruc_valido(ruc)
+                and 1 <= num_estilo <= 5
+                and es_litros_valido(litros_txt)
+                and es_fecha_valida(fecha)
+            )
+
+            if datos_validos:
+                if total < 100:
+                    litros = int(litros_txt)
+                    codigo = f"PED-{total + 1:03d}"
+
+                    codigos[total] = codigo
+                    clientes[total] = cliente
+                    rucs[total] = ruc
+                    estilos[total] = num_estilo
+                    cantidades[total] = litros
+                    fechas[total] = fecha
+
+                    total += 1
+
+                    print("Pedido registrado y guardado.")
+                    print("Codigo:", codigo)
+                else:
+                    print("No se pueden registrar mas de 100 pedidos.")
+            else:
+                print("Error: datos invalidos.")
+
+        elif opcion == 2:
+            buscado = input("Ingrese codigo a buscar: ").upper()
+            pos = -1
+
+            for i in range(total):
+                if codigos[i] == buscado:
+                    pos = i
+
+            if pos == -1:
+                print("Pedido no encontrado.")
+            else:
+                print("Codigo:", codigos[pos])
+                print("Cliente:", clientes[pos])
+                print("RUC:", rucs[pos])
+                print("Estilo:", estilos[pos])
+                print("Litros:", cantidades[pos])
+                print("Fecha:", fechas[pos])
+
+        elif opcion == 3:
+            print("Ordenando por codigo (burbuja)...")
+
+            for i in range(total - 1):
+                for j in range(total - 1 - i):
+                    if codigos[j] > codigos[j + 1]:
+                        codigos[j], codigos[j + 1] = (
+                            codigos[j + 1], codigos[j]
+                        )
+
+                        clientes[j], clientes[j + 1] = (
+                            clientes[j + 1], clientes[j]
+                        )
+
+                        rucs[j], rucs[j + 1] = (
+                            rucs[j + 1], rucs[j]
+                        )
+
+                        estilos[j], estilos[j + 1] = (
+                            estilos[j + 1], estilos[j]
+                        )
+
+                        cantidades[j], cantidades[j + 1] = (
+                            cantidades[j + 1], cantidades[j]
+                        )
+
+                        fechas[j], fechas[j + 1] = (
+                            fechas[j + 1], fechas[j]
+                        )
+
+            print("Pedidos ordenados por codigo.")
+
+        elif opcion == 4:
+            if total == 0:
+                print("No hay pedidos registrados.")
+            else:
+                for i in range(total):
+                    print(
+                        f"{codigos[i]} | {clientes[i]} "
+                        f"| RUC: {rucs[i]} "
+                        f"| Estilo: {estilos[i]} "
+                        f"| Litros: {cantidades[i]} "
+                        f"| Fecha: {fechas[i]}"
+                    )
+
+                print("Mostrar pedidos registrados.")
+
+        elif opcion == 5:
+            print("Guardando pedidos en pedidos.txt...")
+            print("Saliendo del sistema. Hasta pronto.")
+            break
+
+
+if __name__ == "__main__":
+    mesa_de_partes_cajacha()
