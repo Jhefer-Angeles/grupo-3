@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Primera Página</title>
+</head>
+<body>
+    <h1>¡Hola, mundo!</h1>
+    <p>Esta es mi primera página web escrita en HTML.</p>
+</body>
+</html>
+@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome</h1>
+    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+</div>
+@{
+    ViewData["Title"] = "Privacy Policy";
+}
+<h1>@ViewData["Title"]</h1>
+
+<p>Use this page to detail your site's privacy policy.</p>
+@model IEnumerable<ProductosBreeze1.Models.Producto>
+@{
+    ViewData["Title"] = "Alertas de Almacén";
+}
+<div class="container-fluid">
+    <h1 class="h3 mb-4 text-gray-800">Alertas Visuales de Stock</h1>
+    <div class="row">
+        @foreach (var prod in Model)
+        {
+            var cardColor = prod.Stock >= 5 ? "border-left-success" : "border-left-danger";
+            var badgeColor = prod.Stock >= 5 ? "badge-success" : "badge-danger";
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card @cardColor shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">@prod.Categoria (@prod.Marca)</div>
+                                <div class="h6 font-weight-bold text-gray-800">@prod.Nombre</div>
+                                <div class="mt-2">
+                                    <span class="badge @badgeColor p-2">Stock: @prod.Stock</span>
+                                </div>
+                            </div>
+                            <div class="col-auto">
+                                @if (prod.Stock < 5)
+                                {
+                                    <a asp-action="IngresarStock" class="btn btn-sm btn-outline-danger"><i class="fas fa-sync"></i> Reponer</a>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-check-circle text-success fa-2x"></i>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+@model ProductosBreeze1.Models.Venta
+@{
+    ViewData["Title"] = "Comprobante de Pago";
+}
+<div class="container col-md-6 mt-4">
+    <div class="card shadow border-dark">
+        <div class="card-body text-center">
+            <h3 class="font-weight-bold">COMPROBANTE DE COMPRA</h3>
+            <p class="text-muted">Ticket N° 000@Model.Id</p>
+            <hr />
+            <div class="text-left">
+                <p><strong>Fecha:</strong> @Model.FechaHora.ToString("g")</p>
+                <p><strong>Cliente:</strong> @Model.Cliente</p>
+                <p><strong>Atendido por:</strong> @Model.Empleado</p>
+                <p><strong>Método de Pago:</strong> @Model.MetodoPago</p>
+            </div>
+            <table class="table table-sm text-left mt-3">
+                <thead>
+                    <tr>
+                        <th>Prod</th>
+                        <th>Cant</th>
+                        <th>P.U.</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var det in Model.Detalles)
+                    {
+                        <tr>
+                            <td>@det.Producto.Nombre</td>
+                            <td>@det.Cantidad</td>
+                            <td>S/. @det.PrecioUnitario</td>
+                            <td>S/. @(det.Cantidad* det.PrecioUnitario)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <hr />
+            <h4 class="text-right font-weight-bold">Total Pagado: S/. @Model.Total</h4>
+            <hr />
+            <p class="font-italic">¡Gracias por su preferencia!</p>
+            <button onclick="window.print();" class="btn btn-primary btn-sm no-print"><i class="fas fa-print"></i> Imprimir</button>
+            <a asp-action="Menu" class="btn btn-secondary btn-sm no-print">Regresar al Menú</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    @media print {
+        .no-print { display: none; }
+    }
+</style>
+@model ProductosBreeze1.Models.Producto
+@{
+    ViewData["Title"] = "Editar Producto";
+}
+<div class="container-fluid col-md-6">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-warning">Modificar Producto</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="Editar" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div class="form-group">
+                    <label asp-for="Nombre"></label>
+                    <input asp-for="Nombre" class="form-control" required />
+                    <span asp-validation-for="Nombre" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Marca"></label>
+                    <input asp-for="Marca" class="form-control" required />
+                    <span asp-validation-for="Marca" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Categoria">Categoría</label>
+                    <select asp-for="Categoria" class="form-control" required>
+                        <option value="Bebidas">Bebidas</option>
+                        <option value="Alimentos Perecederos">Alimentos Perecederos</option>
+                        <option value="Abarrotes e Insumos">Abarrotes e Insumos</option>
+                        <option value="Repostería">Repostería</option>
+                        <option value="Materiales Descartables">Materiales Descartables</option>
+                    </select>
+                    <span asp-validation-for="Categoria" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Precio"></label>
+                    <input asp-for="Precio" type="number" step="0.01" class="form-control" required />
+                    <span asp-validation-for="Precio" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Stock"></label>
+                    <input asp-for="Stock" type="number" class="form-control" required />
+                    <span asp-validation-for="Stock" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-warning btn-block">Actualizar Datos</button>
+                <a asp-action="MostrarProductos" class="btn btn-secondary btn-block">Cancelar</a>
+            </form>
+        </div>
+    </div>
+</div>
+@model IEnumerable<ProductosBreeze1.Models.HistorialIngreso>
+@{
+    ViewData["Title"] = "Historial de Ingresos";
+}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-history"></i> Log de Registro / Entrada de Stock</h6>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Empleado Responsable</th>
+                        <th>Producto</th>
+                        <th>Cantidad Ingresada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.FechaHora.ToString("g")</td>
+                            <td>@item.Empleado</td>
+                            <td>@item.Producto?.Nombre</td>
+                            <td><span class="badge badge-info">+ @item.Cantidad</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@model IEnumerable<ProductosBreeze1.Models.Venta>
+@{
+    ViewData["Title"] = "Historial de Ventas";
+}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-dark"><i class="fas fa-receipt"></i> Historial de Salidas / Registro de Ventas</h6>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Fecha y Hora</th>
+                        <th>Cajero / Empleado</th>
+                        <th>Cliente</th>
+                        <th>Método de Pago</th>
+                        <th>Total Cobrado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.FechaHora.ToString("g")</td>
+                            <td>@item.Empleado</td>
+                            <td>@item.Cliente</td>
+                            <td>@item.MetodoPago</td>
+                            <td class="font-weight-bold text-success">S/. @item.Total</td>
+                            <td>
+                                <a asp-action="Comprobante" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"><i class="fas fa-eye"></i> Ver Ticket</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+@{
+    ViewData["Title"] = "Ingresar Stock";
+}
+<div class="container-fluid col-md-6">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-info">Ingresar Stock de Productos</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="IngresarStock" method="post">
+                <div class="form-group">
+                    <label>Seleccionar Producto</label>
+                    <select name="productoId" class="form-control" required>
+                        <option value="">-- Seleccione un producto --</option>
+                        @foreach (var prod in ViewBag.Productos)
+                        {
+                            <option value="@prod.Id">@prod.Nombre (@prod.Marca) - Stock actual: @prod.Stock</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Cantidad a Ingresar</label>
+                    <input type="number" name="cantidad" min="1" class="form-control" required />
+                </div>
+                <div class="form-group">
+                    <label>Responsable</label>
+                    <input type="text" class="form-control" value="@User.Identity.Name" disabled />
+                </div>
+                <div class="form-group">
+                    <label>Fecha y Hora</label>
+                    <input type="text" class="form-control" value="@DateTime.Now.ToString("g")" disabled />
+                </div>
+                <button type="submit" class="btn btn-info btn-block">Actualizar Stock</button>
+            </form>
+        </div>
+    </div>
+</div>
+@{
+    ViewData["Title"] = "Menú Principal";
+}
+
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Menú de Gestión de Inventario</h1>
+    </div>
+
+    <div class="row">
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Productos</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.TotalProductos</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-danger shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Productos Bajo Stock (< 5)</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.BajoStock</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Ventas de Hoy</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@ViewBag.VentasHoy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Operaciones Disponibles</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                @if (User.IsInRole("Admin"))
+                {
+                    <div class="col-md-4 mb-3"><a asp-action="RegistrarProducto" class="btn btn-primary btn-block p-3"><i class="fas fa-plus-circle"></i> Registrar Producto</a></div>
+                }
+                <div class="col-md-4 mb-3"><a asp-action="IngresarStock" class="btn btn-info btn-block p-3"><i class="fas fa-boxes"></i> Ingresar Stock</a></div>
+                <div class="col-md-4 mb-3"><a asp-action="SalidaStock" class="btn btn-success btn-block p-3"><i class="fas fa-shopping-cart"></i> Nueva Venta</a></div>
+                <div class="col-md-4 mb-3"><a asp-action="MostrarProductos" class="btn btn-secondary btn-block p-3"><i class="fas fa-list"></i> Lista de Productos</a></div>
+                <div class="col-md-4 mb-3"><a asp-action="AlertasStock" class="btn btn-warning btn-block p-3 text-white"><i class="fas fa-exclamation-triangle"></i> Alertas de Stock</a></div>
+                <div class="col-md-2 mb-3"><a asp-action="HistorialIngresos" class="btn btn-dark btn-block p-3"><i class="fas fa-history"></i> Hist. Ingresos</a></div>
+                <div class="col-md-2 mb-3"><a asp-action="HistorialVentas" class="btn btn-dark btn-block p-3"><i class="fas fa-receipt"></i> Hist. Ventas</a></div>
+            </div>
+        </div>
+    </div>
+</div>
+@model IEnumerable<ProductosBreeze1.Models.Producto>
+@{
+    ViewData["Title"] = "Lista de Productos";
+}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-sm-flex align-items-center justify-content-between">
+            <h6 class="m-0 font-weight-bold text-primary">Todos los Productos en Almacén</h6>
+
+            <form asp-action="MostrarProductos" method="get" class="form-inline mt-2 mt-sm-0">
+                <div class="input-group">
+                    <input type="text" name="buscar" class="form-control bg-light border-0 small" placeholder="Buscar por nombre..." value="@ViewBag.Busqueda">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-search fa-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped" width="100%" cellspacing="0">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Marca</th>
+                            <th>Categoría</th>
+                            <th>Precio</th>
+                            <th>Stock Disponible</th>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <th>Acciones</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td>@item.Nombre</td>
+                                <td>@item.Marca</td>
+                                <td>@item.Categoria</td>
+                                <td>S/. @item.Precio</td>
+                                <td>@item.Stock</td>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <td>
+                                        <a asp-action="Editar" asp-route-id="@item.Id" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i></a>
+                                        <a asp-action="Eliminar" asp-route-id="@item.Id" class="btn btn-danger btn-sm" onclick="return confirm('¿Seguro de eliminar este producto?')"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+@model ProductosBreeze1.Models.Producto
+@{
+    ViewData["Title"] = "Registrar Producto";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-white">
+                <h6 class="m-0 font-weight-bold text-primary">Registrar Nuevo Producto</h6>
+            </div>
+            <div class="card-body">
+                <form asp-action="RegistrarProducto" method="post">
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Nombre" class="form-label font-weight-bold text-dark">Nombre</label>
+                        <input asp-for="Nombre" class="form-control" placeholder="Nombre del producto" required />
+                        <span asp-validation-for="Nombre" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Marca" class="form-label font-weight-bold text-dark">Marca</label>
+                        <input asp-for="Marca" class="form-control" placeholder="Marca del producto" required />
+                        <span asp-validation-for="Marca" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Categoria" class="form-label font-weight-bold text-dark">Categoría</label>
+                        <select asp-for="Categoria" class="form-control" required>
+                            <option value="" disabled selected>-- Seleccione una Categoría --</option>
+
+                            @if (ViewBag.Categorias != null && ((IEnumerable<dynamic>)ViewBag.Categorias).Any())
+                            {
+                                foreach (var cat in ViewBag.Categorias)
+                                {
+                                    <option value="@cat.Id">@cat.Nombre</option>
+                                }
+                            }
+                            else
+                            {
+                                <option value="1">Bebidas</option>
+                                <option value="2">Alimentos Perecederos</option>
+                                <option value="3">Abarrotes e Insumos</option>
+                                <option value="4">Repostería</option>
+                                <option value="5">Materiales Descartables</option>
+                            }
+                        </select>
+                        <span asp-validation-for="Categoria" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Precio" class="form-label font-weight-bold text-dark">Precio</label>
+                        <input asp-for="Precio" type="number" step="0.01" class="form-control" placeholder="0.00" required />
+                        <span asp-validation-for="Precio" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Stock" class="form-label font-weight-bold text-dark">Stock Inicial</label>
+                        <input asp-for="Stock" type="number" class="form-control" placeholder="0" required />
+                        <span asp-validation-for="Stock" class="text-danger"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 form-group mb-3">
+                            <label asp-for="UnidadMedida" class="form-label font-weight-bold text-dark">Unidad de Medida</label>
+                            <select asp-for="UnidadMedida" class="form-control" required>
+                                <option value="" disabled selected>-- Seleccione Medida --</option>
+                                <option value="Kilos">Kilos (kg)</option>
+                                <option value="Gramos">Gramos (g)</option>
+                                <option value="Litros">Litros (L)</option>
+                                <option value="Mililitros">Mililitros (ml)</option>
+                                <option value="Latas">Latas</option>
+                                <option value="Unidad">Por Unidad (u)</option>
+                                <option value="Paquete">Paquete</option>
+                            </select>
+                            <span asp-validation-for="UnidadMedida" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6 form-group mb-3">
+                            <label asp-for="CantidadMedida" class="form-label font-weight-bold text-dark">Cantidad de la Medida</label>
+                            <input asp-for="CantidadMedida" type="number" step="0.01" class="form-control" placeholder="Ej: 1, 500, 2.5" required />
+                            <span asp-validation-for="CantidadMedida" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-primary btn-block mb-2">
+                            <i class="fas fa-save mr-1"></i> Guardar Producto
+                        </button>
+                        <a asp-controller="Inventario" asp-action="MostrarProductos" class="btn btn-secondary btn-block">
+                            <i class="fas fa-arrow-left mr-1"></i> Volver
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@{
+    ViewData["Title"] = "Venta / Salida de Stock";
+}
+<div class="container-fluid">
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-success">Registrar Salida / Venta</h6>
+        </div>
+        <div class="card-body">
+            <form asp-action="RegistrarVenta" method="post" id="ventaForm">
+                <div class="row">
+                    <div class="col-md-6 form-group">
+                        <label>Nombre del Cliente</label>
+                        <input type="text" name="cliente" class="form-control" required />
+                    </div>
+                    <div class="col-md-6 form-group">
+                        <label>Método de Pago</label>
+                        <select name="metodoPago" class="form-control">
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Yape">Yape</option>
+                            <option value="Transferencia Bancaria">Transferencia Bancaria</option>
+                        </select>
+                    </div>
+                </div>
+
+                <hr />
+                <h5>Selección de Productos</h5>
+                <div id="contenedorProductos">
+                    <div class="row producto-fila mb-2">
+                        <div class="col-md-6">
+                            <select name="productoIds" class="form-control prod-select" onchange="calcularTotal()" required>
+                                <option value="" data-precio="0">-- Seleccione --</option>
+                                @foreach (var prod in ViewBag.Productos)
+                                {
+                                    <option value="@prod.Id" data-precio="@prod.Precio">@prod.Nombre - S/. @prod.Precio (Stock: @prod.Stock)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="number" name="cantidades" class="form-control prod-cant" min="1" value="1" oninput="calcularTotal()" required />
+                        </div>
+                        <div class="col-md-2">
+                            <button type="button" class="btn btn-danger" onclick="removerFila(this)">X</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-secondary btn-sm mt-2" onclick="agregarFila()">+ Agregar otro producto</button>
+                <hr />
+
+                <div class="h4 font-weight-bold text-right text-gray-800">
+                    Total: S/. <span id="lblTotal">0.00</span>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-block mt-3">Procesar Pago y Generar Comprobante</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function agregarFila() {
+        var contenedor = document.getElementById("contenedorProductos");
+        var filaOriginal = document.querySelector(".producto-fila");
+        var nuevaFila = filaOriginal.cloneNode(true);
+        nuevaFila.querySelector("input").value = 1;
+        contenedor.appendChild(nuevaFila);
+        calcularTotal();
+    }
+
+    function removerFila(btn) {
+        var filas = document.querySelectorAll(".producto-fila");
+        if(filas.length > 1) {
+            btn.closest(".producto-fila").remove();
+            calcularTotal();
+        }
+    }
+
+    function calcularTotal() {
+        var total = 0;
+        var filas = document.querySelectorAll(".producto-fila");
+        filas.forEach(function(fila) {
+            var select = fila.querySelector(".prod-select");
+            var cantidadInput = fila.querySelector(".prod-cant");
+            var optionSelected = select.options[select.selectedIndex];
+            var precio = parseFloat(optionSelected.getAttribute("data-precio")) || 0;
+            var cantidad = parseInt(cantidadInput.value) || 0;
+            total += precio * cantidad;
+        });
+        document.getElementById("lblTotal").innerText = total.toFixed(2);
+    }
+</script>
+@model ProductosBreeze1.ViewModels.LoginVM;
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="row mt-5 justify-content-center">
+        <div class="col-sm-4">
+            <div class="card">
+                <div class="card-header">
+                    Iniciar Sesión
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Login" asp-action="Login" method="post" autocomplete="off">
+                        <input class="form-control" type="email" placeholder="Correo" required asp-for="Email" />
+                        <input class="form-control" type="password" placeholder="Contraseña" required asp-for="Password" />
+                        <div class="d-grid gap-2 mb-3">
+                            <button class="btn btn-primary" type="submit">Iniciar Sesión</button>
+                        </div>
+                    </form>
+                    @if (ViewData["Mensaje"] != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @ViewData["Mensaje"]
+                        </div>
+                    }
+                    ¿No tienes una cuenta? <a asp-controller="Login" asp-action="Registro">Regístrate</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+@model ProductosBreeze1.ViewModels.UserVM;
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Registro</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+</head>
+<body>
+    <div class="row mt-5 justify-content-center">
+        <div class="col-sm-4">
+            <div class="card">
+                <div class="card-header">
+                    Registro
+                </div>
+                <div class="card-body">
+                    <form asp-controller="Login" asp-action="Registro" method="post" autocomplete="off">
+                        <input class="form-control" type="text" placeholder="Nombre Completo" required asp-for="Name" />
+                        <input class="form-control" type="email" placeholder="Correo" required asp-for="Email" />
+                        <input class="form-control" type="password" placeholder="Contraseña" required asp-for="Pass" />
+                        <input class="form-control" type="password" placeholder="Repite Contraseña" required asp-for="RepPass" />
+                        <select class="form-select mb-3" asp-for="IdRol" asp-items="@(new SelectList(ViewBag.Roles, "IdRol", "Nombre"))">
+                            <option value="">Selecciona una opcion</option>
+                        </select>
+                        <div class="d-grid gap-2 mb-3">
+                            <button class="btn btn-primary" type="submit">Registrarse</button>
+                        </div>
+                    </form>
+                    @if (ViewData["Mensaje"] != null)
+                    {
+                        <div class="alert alert-danger" role="alert">
+                            @ViewData["Mensaje"]
+                        </div>
+                    }
+                    ¿Ya tienes una cuenta? <a asp-controller="Login" asp-action="Login">Iniciar Sesión</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <title>@ViewData["Title"] - ProductosBreeze</title>
+
+    <script type="importmap"></script>
+
+    <link href="~/Template/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="~/Template/css/sb-admin-2.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/LOGIN_ROLES.styles.css" asp-append-version="true" />
+</head>
+<body id="page-top">
+
+    <div id="wrapper">
+
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            <li>
+                <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="" asp-controller="Inventario" asp-action="Menu">
+                    <div class="sidebar-brand-icon rotate-n-15">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="sidebar-brand-text mx-3">ProductosBreeze</div>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider my-0"></li>
+
+            <li class="nav-item active">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="Menu">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Menú General</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Almacén</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="MostrarProductos">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    <span>Ver Productos / Buscar</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="AlertasStock">
+                    <i class="fas fa-fw fa-exclamation-triangle"></i>
+                    <span>Alertas de Stock</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Movimientos</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="IngresarStock">
+                    <i class="fas fa-fw fa-plus-square"></i>
+                    <span>Ingresar Stock</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="SalidaStock">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Registrar Venta</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Historiales</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="HistorialIngresos">
+                    <i class="fas fa-fw fa-folder-open"></i>
+                    <span>Historial de Entradas</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="HistorialVentas">
+                    <i class="fas fa-fw fa-file-invoice-dollar"></i>
+                    <span>Historial de Ventas</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Sesión</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link text-danger" asp-area="" asp-controller="Login" asp-action="Salir">
+                    <i class="fas fa-fw fa-sign-out-alt text-danger"></i>
+                    <span class="font-weight-bold">Cerrar Sesión</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider d-none d-md-block"></li>
+            <li>
+                <div class="text-center d-none d-md-inline mt-3">
+                    <button class="rounded-circle border-0" id="sidebarToggle"></button>
+                </div>
+            </li>
+        </ul>
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Inicio Base</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+                        </li>
+
+                        <li class="nav-item"><div class="topbar-divider d-none d-sm-block"></div></li>
+
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small font-weight-bold">
+                                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                    {
+                                        @User.Identity.Name
+                                    }
+                                    else
+                                    {
+                                        <span>Invitado</span>
+                                    }
+                                </span>
+                                <img class="img-profile rounded-circle" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" style="width: 32px; height: 32px; object-fit: cover;">
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="container-fluid">
+                    <main role="main" class="pb-3">
+                        @RenderBody()
+                    </main>
+                </div>
+
+            </div>
+
+            <footer class="sticky-footer bg-white border-top">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; 2026 - LOGIN_ROLES - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a></span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/Template/vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="~/Template/js/sb-admin-2.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <title>@ViewData["Title"] - ProductosBreeze</title>
+
+    <script type="importmap"></script>
+
+    <link href="~/Template/vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,200i,300,300i,400,400i,600,600i,700,700i,800,800i,900,900i" rel="stylesheet">
+    <link href="~/Template/css/sb-admin-2.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/LOGIN_ROLES.styles.css" asp-append-version="true" />
+</head>
+<body id="page-top">
+
+    <div id="wrapper">
+
+        <ul class="navbar-nav bg-gradient-primary sidebar sidebar-dark accordion" id="accordionSidebar">
+
+            <li>
+                <a class="sidebar-brand d-flex align-items-center justify-content-center" asp-area="" asp-controller="Inventario" asp-action="Menu">
+                    <div class="sidebar-brand-icon rotate-n-15">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="sidebar-brand-text mx-3">ProductosBreeze</div>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider my-0"></li>
+
+            <li class="nav-item active">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="Menu">
+                    <i class="fas fa-fw fa-tachometer-alt"></i>
+                    <span>Menú General</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Almacén</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="MostrarProductos">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    <span>Ver Productos / Buscar</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="AlertasStock">
+                    <i class="fas fa-fw fa-exclamation-triangle"></i>
+                    <span>Alertas de Stock</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Movimientos</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="IngresarStock">
+                    <i class="fas fa-fw fa-plus-square"></i>
+                    <span>Ingresar Stock</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="SalidaStock">
+                    <i class="fas fa-fw fa-shopping-cart"></i>
+                    <span>Registrar Venta</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Historiales</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="HistorialIngresos">
+                    <i class="fas fa-fw fa-folder-open"></i>
+                    <span>Historial de Entradas</span>
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link" asp-area="" asp-controller="Inventario" asp-action="HistorialVentas">
+                    <i class="fas fa-fw fa-file-invoice-dollar"></i>
+                    <span>Historial de Ventas</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider"></li>
+            <li><div class="sidebar-heading">Sesión</div></li>
+
+            <li class="nav-item">
+                <a class="nav-link text-danger" asp-area="" asp-controller="Login" asp-action="Salir">
+                    <i class="fas fa-fw fa-sign-out-alt text-danger"></i>
+                    <span class="font-weight-bold">Cerrar Sesión</span>
+                </a>
+            </li>
+
+            <li><hr class="sidebar-divider d-none d-md-block"></li>
+            <li>
+                <div class="text-center d-none d-md-inline mt-3">
+                    <button class="rounded-circle border-0" id="sidebarToggle"></button>
+                </div>
+            </li>
+        </ul>
+        <div id="content-wrapper" class="d-flex flex-column">
+            <div id="content">
+
+                <nav class="navbar navbar-expand navbar-light bg-white topbar mb-4 static-top shadow">
+                    <button id="sidebarToggleTop" class="btn btn-link d-md-none rounded-circle mr-3">
+                        <i class="fa fa-bars"></i>
+                    </button>
+
+                    <ul class="navbar-nav ml-auto">
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Inicio Base</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacidad</a>
+                        </li>
+
+                        <li class="nav-item"><div class="topbar-divider d-none d-sm-block"></div></li>
+
+                        <li class="nav-item dropdown no-arrow">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <span class="mr-2 d-none d-lg-inline text-gray-600 small font-weight-bold">
+                                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                                    {
+                                        @User.Identity.Name
+                                    }
+                                    else
+                                    {
+                                        <span>Invitado</span>
+                                    }
+                                </span>
+                                <img class="img-profile rounded-circle" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" style="width: 32px; height: 32px; object-fit: cover;">
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="container-fluid">
+                    <main role="main" class="pb-3">
+                        @RenderBody()
+                    </main>
+                </div>
+
+            </div>
+
+            <footer class="sticky-footer bg-white border-top">
+                <div class="container my-auto">
+                    <div class="copyright text-center my-auto">
+                        <span>&copy; 2026 - LOGIN_ROLES - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a></span>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/Template/vendor/jquery-easing/jquery.easing.min.js"></script>
+    <script src="~/Template/js/sb-admin-2.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
