@@ -74,3 +74,39 @@ def mesa_de_partes_cajacha():
 
             cliente = input("Cliente: ")
             ruc = input("RUC: ")
+            try:
+                num_estilo = int(input("Estilo (1-5): "))
+            except ValueError:
+                num_estilo = 0
+
+            litros_txt = input("Litros: ")
+            fecha = input("Fecha de entrega (DD/MM/AAAA): ")
+
+            datos_validos = (
+                cliente != ""
+                and es_ruc_valido(ruc)
+                and 1 <= num_estilo <= 5
+                and es_litros_valido(litros_txt)
+                and es_fecha_valida(fecha)
+            )
+
+            if datos_validos:
+                if total < 100:
+                    litros = int(litros_txt)
+                    codigo = f"PED-{total + 1:03d}"
+
+                    codigos[total] = codigo
+                    clientes[total] = cliente
+                    rucs[total] = ruc
+                    estilos[total] = num_estilo
+                    cantidades[total] = litros
+                    fechas[total] = fecha
+
+                    total += 1
+
+                    print("Pedido registrado y guardado.")
+                    print("Codigo:", codigo)
+                else:
+                    print("No se pueden registrar mas de 100 pedidos.")
+            else:
+                print("Error: datos invalidos.")
