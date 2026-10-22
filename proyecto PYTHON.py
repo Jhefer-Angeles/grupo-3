@@ -35,3 +35,42 @@ def es_fecha_valida(fecha):
     año = int(texto_año)
 
     return 1 <= dia <= 31 and 1 <= mes <= 12 and año >= 1
+
+def mesa_de_partes_cajacha():
+    total = 0
+
+    codigos = [""] * 100
+    clientes = [""] * 100
+    rucs = [""] * 100
+    estilos = [0] * 100
+    cantidades = [0] * 100 
+    fechas = [""] * 100
+
+    print("Cargando pedidos desde pedidos.txt...")
+
+    while True:
+        print()
+        print("=== MESA DE PARTES DIGITAL - CAJACHA ===")
+        print(
+            "1. Registrar | 2. Consultar | 3. Ordenar | "
+            "4. Listar | 5. Salir"
+        )
+
+        try:
+            opcion = int(input("Seleccione opcion (1-5): "))
+        except ValueError:
+            print("Opcion no valida. Ingrese un numero del 1 al 5.")
+            continue
+
+        if not 1 <= opcion <= 5:
+            print("Opcion no valida. Ingrese un numero del 1 al 5.")
+            continue
+
+        if opcion == 1:
+            print(
+                "Ingrese cliente, RUC, estilo, litros "
+                "y fecha de entrega:"
+            )
+
+            cliente = input("Cliente: ")
+            ruc = input("RUC: ")
