@@ -111,7 +111,7 @@ def mesa_de_partes_cajacha():
             else:
                 print("Error: datos invalidos.")
 
-elif opcion == 2:
+        elif opcion == 2:
             buscado = input("Ingrese codigo a buscar: ").upper()
             pos = -1
 
@@ -155,7 +155,7 @@ elif opcion == 2:
                         )
 
             print("Pedidos ordenados por codigo.")
-elif opcion == 4:
+        elif opcion == 4:
             if total == 0:
                 print("No hay pedidos registrados.")
             else:
