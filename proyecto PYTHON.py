@@ -155,3 +155,25 @@ elif opcion == 2:
                         )
 
             print("Pedidos ordenados por codigo.")
+elif opcion == 4:
+            if total == 0:
+                print("No hay pedidos registrados.")
+            else:
+                for i in range(total):
+                    print(
+                        f"{codigos[i]} | {clientes[i]} "
+                        f"| RUC: {rucs[i]} "
+                        f"| Estilo: {estilos[i]} "
+                        f"| Litros: {cantidades[i]} "
+                        f"| Fecha: {fechas[i]}"
+                    )
+
+                print("Mostrar pedidos registrados.")
+
+        elif opcion == 5:
+            print("Guardando pedidos en pedidos.txt...")
+            print("Saliendo del sistema. Hasta pronto.")
+            break
+
+if __name__ == "__main__":
+    mesa_de_partes_cajacha()
