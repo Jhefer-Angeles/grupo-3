@@ -110,3 +110,48 @@ def mesa_de_partes_cajacha():
                     print("No se pueden registrar mas de 100 pedidos.")
             else:
                 print("Error: datos invalidos.")
+
+elif opcion == 2:
+            buscado = input("Ingrese codigo a buscar: ").upper()
+            pos = -1
+
+            for i in range(total):
+                if codigos[i] == buscado:
+                    pos = i
+
+            if pos == -1:
+                print("Pedido no encontrado.")
+            else:
+                print("Codigo:", codigos[pos])
+                print("Cliente:", clientes[pos])
+                print("RUC:", rucs[pos])
+                print("Estilo:", estilos[pos])
+                print("Litros:", cantidades[pos])
+                print("Fecha:", fechas[pos])
+
+        elif opcion == 3:
+            print("Ordenando por codigo (burbuja)...")
+
+            for i in range(total - 1):
+                for j in range(total - 1 - i):
+                    if codigos[j] > codigos[j + 1]:
+                        codigos[j], codigos[j + 1] = (
+                            codigos[j + 1], codigos[j]
+                        )
+                        clientes[j], clientes[j + 1] = (
+                            clientes[j + 1], clientes[j]
+                        )
+                        rucs[j], rucs[j + 1] = (
+                            rucs[j + 1], rucs[j]
+                        )
+                        estilos[j], estilos[j + 1] = (
+                            estilos[j + 1], estilos[j]
+                        )
+                        cantidades[j], cantidades[j + 1] = (
+                            cantidades[j + 1], cantidades[j]
+                        )
+                        fechas[j], fechas[j + 1] = (
+                            fechas[j + 1], fechas[j]
+                        )
+
+            print("Pedidos ordenados por codigo.")
